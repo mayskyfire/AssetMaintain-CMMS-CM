@@ -1,0 +1,186 @@
+@import './fonts.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design Tokens - Colors */
+:root {
+  /* Primary Colors */
+  --color-primary: #00a6ff;
+  --color-primary-dark: #0084d1;
+  --color-primary-light: #33b8ff;
+  
+  /* Success */
+  --color-success: #6dd400;
+  --color-success-dark: #5ab300;
+  
+  /* Warning */
+  --color-warning: #fe9a00;
+  --color-warning-dark: #e68900;
+  
+  /* Danger */
+  --color-danger: #ff3b30;
+  --color-danger-dark: #e62e24;
+  
+  /* Neutral Colors */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;   /* 4px */
+  --spacing-sm: 0.5rem;    /* 8px */
+  --spacing-md: 0.75rem;   /* 12px */
+  --spacing-lg: 1rem;      /* 16px */
+  --spacing-xl: 1.5rem;    /* 24px */
+  --spacing-2xl: 2rem;     /* 32px */
+  --spacing-3xl: 3rem;     /* 48px */
+  
+  /* Border Radius */
+  --radius-sm: 0.5rem;     /* 8px */
+  --radius-md: 0.75rem;    /* 12px */
+  --radius-lg: 1rem;       /* 16px */
+  --radius-xl: 1.25rem;    /* 20px */
+  
+  /* Typography */
+  --font-size-xs: 0.6875rem;  /* 11px */
+  --font-size-sm: 0.75rem;    /* 12px */
+  --font-size-base: 0.8125rem; /* 13px */
+  --font-size-md: 0.875rem;   /* 14px */
+  --font-size-lg: 1rem;       /* 16px */
+  --font-size-xl: 1.125rem;   /* 18px */
+  --font-size-2xl: 1.25rem;   /* 20px */
+  --font-size-3xl: 1.5rem;    /* 24px */
+  --font-size-4xl: 1.75rem;   /* 28px */
+  --font-size-5xl: 2rem;      /* 32px */
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  
+  /* Z-index */
+  --z-base: 1;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-modal: 40;
+  --z-popover: 50;
+  --z-tooltip: 60;
+}
+
+/* Base Styles */
+@layer base {
+  * {
+    @apply border-slate-200;
+  }
+  
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+    font-family: 'Inter', 'Noto Sans Thai', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Safe area for mobile devices */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Component Styles */
+@layer components {
+  /* Card */
+  .card {
+    @apply bg-white rounded-[12px] shadow-sm;
+  }
+  
+  /* Button Base */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-bold rounded-[10px] transition-all active:scale-95;
+  }
+  
+  /* Button Variants */
+  .btn-primary {
+    @apply bg-[#00a6ff] text-white hover:bg-[#0084d1];
+  }
+  
+  .btn-success {
+    @apply bg-[#6dd400] text-white hover:bg-[#5ab300];
+  }
+  
+  .btn-danger {
+    @apply bg-[#ff3b30] text-white hover:bg-[#e62e24];
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-100 text-slate-700 hover:bg-slate-200;
+  }
+  
+  /* Button Sizes */
+  .btn-sm {
+    @apply px-3 py-2 text-[12px];
+  }
+  
+  .btn-md {
+    @apply px-4 py-2.5 text-[13px];
+  }
+  
+  .btn-lg {
+    @apply px-6 py-3 text-[14px];
+  }
+  
+  /* Input */
+  .input {
+    @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-[10px] text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00a6ff] focus:border-transparent transition-all;
+  }
+  
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[11px] font-bold;
+  }
+  
+  .badge-primary {
+    @apply bg-[#00a6ff]/10 text-[#00a6ff];
+  }
+  
+  .badge-success {
+    @apply bg-[#6dd400]/10 text-[#6dd400];
+  }
+  
+  .badge-warning {
+    @apply bg-[#fe9a00]/10 text-[#fe9a00];
+  }
+  
+  .badge-danger {
+    @apply bg-[#ff3b30]/10 text-[#ff3b30];
+  }
+  
+  .badge-secondary {
+    @apply bg-slate-100 text-slate-600;
+  }
+}
+
+/* Utility Classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

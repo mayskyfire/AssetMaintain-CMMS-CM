@@ -1,0 +1,33 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+CM-Mobile-Application-React
+001_create_all_table.sql
+002_add_performance_indexes.sql
+001_seed_all_table.sql
+
+QUICK_START.md
+PROJECT_STATUS.md
+
