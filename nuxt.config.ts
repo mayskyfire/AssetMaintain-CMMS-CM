@@ -7,6 +7,24 @@ export default defineNuxtConfig({
     port: 3002
   },
 
+  runtimeConfig: {
+    // Private keys (server-side only)
+    apiSecret: process.env.API_SECRET || '',
+    
+    // Database configuration (server-side only)
+    dbHost: process.env.DB_HOST || 'localhost',
+    dbPort: process.env.DB_PORT || '3306',
+    dbUser: process.env.DB_USER || 'root',
+    dbPassword: process.env.DB_PASSWORD || '',
+    dbName: process.env.DB_NAME || 'assetmaintain',
+    
+    // Public keys (exposed to client)
+    public: {
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || '/api',
+      appName: 'AssetMaintain CM'
+    }
+  },
+
   modules: [
     '@nuxtjs/tailwindcss',
     '@nuxt/icon'
@@ -26,10 +44,18 @@ export default defineNuxtConfig({
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' },
         { name: 'description', content: 'ระบบแจ้งซ่อมบำรุงสำหรับช่างหน้างาน' },
-        { name: 'theme-color', content: '#00a6ff' }
+        { name: 'theme-color', content: '#00a6ff' },
+        // PWA meta tags
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'apple-mobile-web-app-title', content: 'CM Maintain' },
+        { name: 'msapplication-TileColor', content: '#00a6ff' }
       ],
       link: [
-        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'manifest', href: '/manifest.json' },
+        { rel: 'apple-touch-icon', href: '/icons/icon-152x152.png' }
       ]
     }
   },

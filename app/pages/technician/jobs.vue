@@ -3,7 +3,18 @@
     <LayoutMobileHeader title="งานของฉัน" />
     
     <div class="p-4 space-y-3 pb-24">
+      <!-- Loading State -->
+      <UiLoading v-if="loading" />
+
+      <!-- Empty State -->
+      <div v-else-if="jobs.length === 0" class="text-center py-12">
+        <Icon name="lucide:inbox" size="48" class="text-slate-300 mx-auto mb-3" />
+        <p class="text-[14px] text-slate-500">ไม่มีงานในขณะนี้</p>
+      </div>
+
+      <!-- Jobs List -->
       <UiCard
+        v-else
         v-for="job in jobs"
         :key="job.id"
         :clickable="true"
@@ -11,7 +22,7 @@
         @click="handleJobClick(job)"
       >
         <div class="flex items-start justify-between mb-2">
-          <span class="text-[13px] font-bold text-[#00a6ff]">{{ job.id }}</span>
+          <span class="text-[13px] font-bold text-[#00a6ff]">{{ job.notification_id }}</span>
           <UiBadge
             :label="getStatusLabel(job.status)"
             :variant="getStatusVariant(job.status)"
@@ -20,18 +31,18 @@
         </div>
 
         <h4 class="text-[14px] font-bold text-slate-800 mb-2">
-          {{ job.equipment }}
+          {{ job.asset_name }}
         </h4>
 
-        <p class="text-[13px] text-slate-600 mb-3">{{ job.description }}</p>
+        <p class="text-[13px] text-slate-600 mb-3">{{ job.problem_description }}</p>
 
         <div class="flex items-center justify-between">
           <UiBadge
-            :label="`Priority ${job.priority}`"
-            :variant="job.priority === '1' ? 'danger' : 'primary'"
+            :label="getPriorityLabel(job.priority)"
+            :variant="getPriorityVariant(job.priority)"
             size="small"
           />
-          <span class="text-[11px] text-slate-500">{{ job.assignedAt }}</span>
+          <span class="text-[11px] text-slate-500">{{ formatDate(job.assigned_at) }}</span>
         </div>
       </UiCard>
     </div>
@@ -42,22 +53,22 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const { getJobs } = useTechnicianService()
+const { jobs, loading } = useTechnicianState()
 
-const jobs = ref([
-  {
-    id: 'CM-2026-0123',
-    equipment: 'เครื่องปรับอากาศ AC-02',
-    description: 'เครื่องไม่เย็น ต้องตรวจสอบน้ำยา',
-    status: 'assigned',
-    priority: '2',
-    assignedAt: '21 ม.ค. 2026 15:00'
+// Load jobs on mount
+onMounted(async () => {
+  try {
+    await getJobs({ page: 1, limit: 50 })
+  } catch (error) {
+    console.error('Failed to load jobs:', error)
   }
-])
+})
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
     assigned: 'รอรับงาน',
-    inProgress: 'กำลังดำเนินการ',
+    in_progress: 'กำลังดำเนินการ',
     completed: 'เสร็จสิ้น'
   }
   return labels[status] || status
@@ -66,16 +77,47 @@ const getStatusLabel = (status: string) => {
 const getStatusVariant = (status: string) => {
   const variants: Record<string, any> = {
     assigned: 'warning',
-    inProgress: 'primary',
+    in_progress: 'primary',
     completed: 'success'
   }
   return variants[status] || 'secondary'
 }
 
+const getPriorityLabel = (priority: string) => {
+  const labels: Record<string, string> = {
+    critical: 'เร่งด่วน',
+    high: 'สูง',
+    medium: 'ปานกลาง',
+    low: 'ต่ำ'
+  }
+  return labels[priority] || priority
+}
+
+const getPriorityVariant = (priority: string) => {
+  const variants: Record<string, any> = {
+    critical: 'danger',
+    high: 'warning',
+    medium: 'primary',
+    low: 'secondary'
+  }
+  return variants[priority] || 'secondary'
+}
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 const handleJobClick = (job: any) => {
   if (job.status === 'assigned') {
     router.push(`/technician/accept/${job.id}`)
-  } else if (job.status === 'inProgress') {
+  } else if (job.status === 'in_progress') {
     router.push(`/technician/worklog/${job.id}`)
   }
 }

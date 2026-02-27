@@ -7,15 +7,15 @@
       <UiCard class-name="p-4 bg-[#dbeafe]">
         <div class="flex items-start justify-between mb-2">
           <h3 class="text-[13px] font-bold text-slate-800">ข้อมูลอุปกรณ์</h3>
-          <UiBadge v-if="qrData" variant="success" size="small">
+          <UiBadge v-if="route.query.asset_code" variant="success" size="small">
             <Icon name="lucide:qr-code" size="12" class="mr-1" />
             จาก QR
           </UiBadge>
         </div>
         <p class="text-[14px] font-bold text-[#00a6ff] mb-1">
-          {{ formData.equipment }}
+          {{ formData.asset_name || 'กรุณาเลือกอุปกรณ์' }}
         </p>
-        <div class="flex items-start gap-1">
+        <div v-if="formData.location" class="flex items-start gap-1">
           <Icon name="lucide:map-pin" size="16" class="text-slate-500 shrink-0 mt-0.5" />
           <span class="text-[12px] text-slate-500">{{ formData.location }}</span>
         </div>
@@ -24,21 +24,21 @@
       <!-- Form -->
       <UiCard class-name="p-4 space-y-4">
         <UiSelect
-          v-model="formData.type"
-          label="ประเภทการแจ้ง"
-          :options="typeOptions"
-          required
-        />
-
-        <UiSelect
           v-model="formData.priority"
           label="ระดับความสำคัญ"
           :options="priorityOptions"
           required
         />
 
+        <UiSelect
+          v-if="problemCategories.length > 0"
+          v-model="formData.problem_category"
+          label="หมวดหมู่ปัญหา (ถ้ามี)"
+          :options="problemCategories"
+        />
+
         <UiTextarea
-          v-model="formData.description"
+          v-model="formData.problem_description"
           label="รายละเอียดปัญหา"
           placeholder="อธิบายอาการหรือปัญหาที่พบ..."
           :rows="5"
@@ -47,15 +47,15 @@
       </UiCard>
 
       <!-- Warning -->
-      <UiCard v-if="formData.priority === '1'" class-name="p-4 bg-[#fee2e2]">
+      <UiCard v-if="formData.priority === 'critical' || formData.priority === 'high'" class-name="p-4 bg-[#fee2e2]">
         <div class="flex items-start gap-2">
           <Icon name="lucide:alert-circle" size="20" class="text-[#ef4444] shrink-0 mt-0.5" />
           <div>
             <h4 class="text-[13px] font-bold text-[#ef4444] mb-1">
-              Priority 1 - วิกฤติ
+              {{ formData.priority === 'critical' ? 'วิกฤติ - ต้องแก้ไขทันที' : 'ด่วน - ภายใน 24 ชม.' }}
             </h4>
             <p class="text-[12px] text-[#ef4444]/80">
-              งานนี้จะได้รับการดำเนินการอย่างเร่งด่วนทันที
+              งานนี้จะได้รับการดำเนินการอย่างเร่งด่วน
             </p>
           </div>
         </div>
@@ -65,72 +65,159 @@
         variant="primary"
         size="large"
         full-width
-        :disabled="!formData.description"
+        :disabled="!canSubmit || submitting"
         @click="handleSubmit"
       >
-        ถัดไป: อัปโหลดหลักฐาน
+        {{ submitting ? 'กำลังบันทึก...' : 'ถัดไป: อัปโหลดหลักฐาน' }}
       </UiButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { Priority } from '~/types/database'
+
 const router = useRouter()
 const route = useRoute()
 const { success: showSuccess, error: showError } = useToast()
+const { createNotification } = useNotificationService()
+const { isOnline } = useNetworkStatus()
+const { saveDraft, getDraft, removeDraft, addToQueue } = useOfflineStorage()
 
-// Parse QR data if available
-const qrData = computed(() => {
-  const qr = route.query.qr as string
-  if (!qr) return null
-  
-  try {
-    // Try to parse as JSON first
-    return JSON.parse(qr)
-  } catch {
-    // If not JSON, treat as equipment ID
-    return { equipmentId: qr }
-  }
-})
+const submitting = ref(false)
 
+// Initialize form data from query params (from QR scan)
 const formData = ref({
-  equipment: qrData.value?.equipmentName || qrData.value?.equipmentId || 'เครื่องปรับอากาศ AC-001',
-  location: qrData.value?.location || 'ห้องประชุม A, อาคาร 1',
-  type: 'Z1',
-  priority: '1',
-  description: ''
+  asset_id: Number(route.query.asset_id) || 0,
+  asset_code: (route.query.asset_code as string) || '',
+  asset_name: (route.query.asset_name as string) || '',
+  location: (route.query.location as string) || '',
+  priority: 'medium' as Priority,
+  problem_category: '',
+  problem_description: '',
+  photos: [] as string[]
 })
-
-const typeOptions = [
-  { value: 'Z1', label: 'Z1 - เสียหาย (Breakdown)' },
-  { value: 'Z2', label: 'Z2 - ผิดปกติ (Malfunction)' }
-]
 
 const priorityOptions = [
-  { value: '1', label: 'Priority 1 - วิกฤติ (ต้องแก้ไขทันที)' },
-  { value: '2', label: 'Priority 2 - ด่วน (ภายใน 24 ชม.)' },
-  { value: '3', label: 'Priority 3 - ปกติ (ภายใน 3 วัน)' },
-  { value: '4', label: 'Priority 4 - ไม่ด่วน (ภายใน 7 วัน)' }
+  { value: 'critical', label: 'วิกฤติ - ต้องแก้ไขทันที' },
+  { value: 'high', label: 'ด่วน - ภายใน 24 ชม.' },
+  { value: 'medium', label: 'ปกติ - ภายใน 3 วัน' },
+  { value: 'low', label: 'ไม่ด่วน - ภายใน 7 วัน' }
 ]
 
-const handleSubmit = () => {
-  // Basic validation
-  if (!formData.value.type) {
-    showError('กรุณาเลือกประเภทการแจ้งซ่อม')
+const problemCategories = [
+  { value: 'electrical', label: 'ไฟฟ้า' },
+  { value: 'mechanical', label: 'เครื่องกล' },
+  { value: 'plumbing', label: 'ประปา' },
+  { value: 'hvac', label: 'ระบบปรับอากาศ' },
+  { value: 'other', label: 'อื่นๆ' }
+]
+
+// Auto-save draft
+const draftKey = 'create-notification'
+
+// Restore draft on mount (only if not from QR)
+onMounted(async () => {
+  if (!route.query.asset_id) {
+    const draft = await getDraft<typeof formData.value>(draftKey)
+    if (draft) {
+      formData.value = { ...formData.value, ...draft }
+    }
+  }
+})
+
+// Auto-save draft on change
+watch(formData, async (val) => {
+  await saveDraft(draftKey, toRaw(val))
+}, { deep: true })
+
+// Validation
+const canSubmit = computed(() => {
+  return formData.value.asset_id > 0 &&
+         formData.value.problem_description.trim().length >= 10
+})
+
+const handleSubmit = async () => {
+  // Validation
+  if (!formData.value.asset_id) {
+    showError('กรุณาเลือกอุปกรณ์')
     return
   }
   
-  if (!formData.value.priority) {
-    showError('กรุณาเลือกระดับความสำคัญ')
-    return
-  }
-  
-  if (!formData.value.description || formData.value.description.trim().length < 10) {
+  if (!formData.value.problem_description || formData.value.problem_description.trim().length < 10) {
     showError('กรุณาระบุรายละเอียดปัญหาอย่างน้อย 10 ตัวอักษร')
     return
   }
-  
-  showSuccess('บันทึกข้อมูลเรียบร้อย')
-  router.push('/requester/evidence-upload')
+
+  submitting.value = true
+
+  try {
+    // If offline, save to queue
+    if (!isOnline.value) {
+      await addToQueue({
+        type: 'notification',
+        title: `แจ้งซ่อม: ${formData.value.asset_name}`,
+        description: formData.value.problem_description.slice(0, 100),
+        data: {
+          asset_id: formData.value.asset_id,
+          problem_description: formData.value.problem_description,
+          priority: formData.value.priority,
+          problem_category: formData.value.problem_category || undefined
+        },
+        photos: formData.value.photos
+      })
+      await removeDraft(draftKey)
+      showSuccess('บันทึกลงคิวออฟไลน์แล้ว')
+      
+      // Navigate to submit-success with data
+      router.push({
+        path: '/requester/submit-success',
+        query: {
+          notification: JSON.stringify({
+            notification_id: 'OFFLINE-' + Date.now(),
+            asset_name: formData.value.asset_name,
+            problem_category: formData.value.problem_category,
+            priority: formData.value.priority
+          })
+        }
+      })
+      return
+    }
+
+    // If online, send to API
+    const response = await createNotification({
+      asset_id: formData.value.asset_id,
+      asset_code: formData.value.asset_code,
+      problem_description: formData.value.problem_description,
+      priority: formData.value.priority,
+      problem_category: formData.value.problem_category || undefined,
+      photos: formData.value.photos
+    })
+
+    await removeDraft(draftKey)
+    showSuccess('สร้างใบแจ้งซ่อมสำเร็จ')
+    
+    // Navigate to submit-success with data
+    if (response.success && response.data) {
+      router.push({
+        path: '/requester/submit-success',
+        query: {
+          notification: JSON.stringify({
+            id: response.data.id,
+            notification_id: response.data.notification_id,
+            asset_name: formData.value.asset_name,
+            problem_category: formData.value.problem_category,
+            priority: formData.value.priority
+          })
+        }
+      })
+    } else {
+      router.push('/requester/submit-success')
+    }
+  } catch (err: any) {
+    showError(err.message || 'สร้างใบแจ้งซ่อมไม่สำเร็จ')
+  } finally {
+    submitting.value = false
+  }
 }
 </script>

@@ -55,9 +55,10 @@
             size="large"
             full-width
             icon="lucide:log-in"
+            :disabled="loading"
             @click="handleLogin"
           >
-            เข้าสู่ระบบ
+            {{ loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ' }}
           </UiButton>
         </div>
       </UiCard>
@@ -71,10 +72,13 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const { login } = useAuth()
+const { success: showSuccess, error: showError } = useToast()
 
 const username = ref('')
 const password = ref('')
 const role = ref<'requester' | 'supervisor' | 'technician'>('requester')
+const loading = ref(false)
 
 const roles = [
   { value: 'requester', label: 'ผู้แจ้งซ่อม' },
@@ -82,14 +86,46 @@ const roles = [
   { value: 'technician', label: 'ช่างซ่อม' }
 ]
 
-const handleLogin = () => {
-  // Mock login - navigate based on role
-  if (role.value === 'requester') {
-    router.push('/requester/home')
-  } else if (role.value === 'supervisor') {
-    router.push('/supervisor/inbox')
-  } else if (role.value === 'technician') {
-    router.push('/technician/jobs')
+const handleLogin = async () => {
+  // Validation
+  if (!username.value || !password.value) {
+    showError('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน')
+    return
+  }
+
+  loading.value = true
+
+  try {
+    const response = await login({
+      email: username.value,
+      password: password.value
+    })
+    
+    if (response.user) {
+      showSuccess('เข้าสู่ระบบสำเร็จ')
+
+      // Navigate based on user role from API response
+      const userRole = response.user.role
+
+      switch (userRole) {
+        case 'requester':
+          router.push('/requester/')
+          break
+        case 'technician':
+          router.push('/technician/jobs')
+          break
+        case 'planner':
+        case 'engineer':
+          router.push('/supervisor/inbox')
+          break
+        default:
+          router.push('/requester/')
+      }
+    }
+  } catch (error: any) {
+    showError(error.message || 'เข้าสู่ระบบไม่สำเร็จ')
+  } finally {
+    loading.value = false
   }
 }
 </script>

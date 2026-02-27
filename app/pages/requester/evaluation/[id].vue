@@ -2,12 +2,15 @@
   <div class="min-h-screen bg-slate-50">
     <LayoutMobileHeader title="ประเมินผลการซ่อม" :show-back="true" />
 
-    <div class="p-4 space-y-4 pb-24">
+    <UiLoading v-if="loading" />
+
+    <div v-else-if="currentNotification" class="p-4 space-y-4 pb-24">
       <UiCard class-name="p-4 bg-[#dbeafe]">
-        <span class="text-[13px] font-bold text-[#00a6ff]">{{ id }}</span>
+        <span class="text-[13px] font-bold text-[#00a6ff]">{{ currentNotification.notification_id }}</span>
         <h2 class="text-[14px] font-bold text-slate-800 mt-1">
-          เครื่องปรับอากาศ AC-001
+          {{ currentNotification.asset_name }}
         </h2>
+        <p class="text-[12px] text-slate-500 mt-1">{{ currentNotification.location }}</p>
       </UiCard>
 
       <!-- Rating -->
@@ -70,11 +73,17 @@
         size="large"
         full-width
         icon="lucide:thumbs-up"
-        :disabled="rating === 0"
+        :disabled="rating === 0 || submitting"
         @click="handleSubmit"
       >
-        ส่งการประเมิน
+        {{ submitting ? 'กำลังส่ง...' : 'ส่งการประเมิน' }}
       </UiButton>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else class="flex flex-col items-center justify-center min-h-[60vh] p-4">
+      <Icon name="lucide:alert-circle" size="48" class="text-slate-300 mb-3" />
+      <p class="text-[14px] text-slate-500">ไม่พบข้อมูลใบแจ้งซ่อม</p>
     </div>
   </div>
 </template>
@@ -82,10 +91,30 @@
 <script setup lang="ts">
 const router = useRouter()
 const route = useRoute()
-const id = route.params.id as string
+const { success: showSuccess, error: showError } = useToast()
+const { getNotificationDetail, evaluateNotification } = useNotificationService()
+const { currentNotification, loading } = useNotificationState()
+const { user } = useAuth()
 
+const id = Number(route.params.id)
 const rating = ref(0)
 const comment = ref('')
+const submitting = ref(false)
+
+// Load notification detail on mount
+onMounted(async () => {
+  try {
+    await getNotificationDetail(id)
+    
+    // Check if already evaluated
+    if (currentNotification.value?.satisfaction_rating) {
+      showError('ใบแจ้งซ่อมนี้ได้รับการประเมินแล้ว')
+      router.push(`/requester/notification/${id}`)
+    }
+  } catch (error) {
+    console.error('Failed to load notification:', error)
+  }
+})
 
 const quickTags = [
   'ซ่อมเร็ว',
@@ -115,23 +144,31 @@ const addQuickTag = (tag: string) => {
   }
 }
 
-const { success: showSuccess, error: showError } = useToast()
-
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (rating.value === 0) {
     showError('กรุณาให้คะแนนก่อนส่งประเมิน')
     return
   }
-  
-  if (!comment.value || comment.value.trim().length < 5) {
-    showError('กรุณาระบุความคิดเห็นอย่างน้อย 5 ตัวอักษร')
-    return
+
+  submitting.value = true
+
+  try {
+    await evaluateNotification(id, {
+      cm_history_id: id,
+      satisfaction_rating: rating.value,
+      satisfaction_comment: comment.value || undefined,
+      evaluated_by: user.value?.full_name || 'ผู้ใช้งาน'
+    })
+
+    showSuccess('ส่งการประเมินเรียบร้อยแล้ว', 'ขอบคุณสำหรับความคิดเห็น')
+    
+    setTimeout(() => {
+      router.push('/requester/notifications')
+    }, 1000)
+  } catch (err: any) {
+    showError(err.message || 'ส่งการประเมินไม่สำเร็จ')
+  } finally {
+    submitting.value = false
   }
-  
-  showSuccess('ส่งการประเมินเรียบร้อยแล้ว', 'ขอบคุณสำหรับความคิดเห็น')
-  
-  setTimeout(() => {
-    router.push('/requester/notifications')
-  }, 1000)
 }
 </script>

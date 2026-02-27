@@ -29,7 +29,7 @@ npm install
 npm run dev
 ```
 
-Application จะรันที่ `http://localhost:3000`
+Application จะรันที่ `http://localhost:3002`
 
 ### Build for Production
 

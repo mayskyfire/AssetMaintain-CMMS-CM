@@ -140,9 +140,9 @@ const startScanner = async () => {
 
     // Prefer back camera
     const backCamera = devices.find(device => 
-      device.label.toLowerCase().includes('back') || 
-      device.label.toLowerCase().includes('rear') ||
-      device.label.toLowerCase().includes('environment')
+      (device.label || '').toLowerCase().includes('back') || 
+      (device.label || '').toLowerCase().includes('rear') ||
+      (device.label || '').toLowerCase().includes('environment')
     )
     const cameraId = backCamera?.id || devices[0].id
 

@@ -1,5 +1,6 @@
 <template>
   <div>
+    <UiOfflineBanner />
     <NuxtRouteAnnouncer />
     <NuxtPage />
     <UiToastContainer />

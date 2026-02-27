@@ -3,14 +3,25 @@
     <LayoutMobileHeader title="คิวออฟไลน์" :show-back="true" />
     
     <div class="p-4 space-y-4">
-      <!-- Info Banner -->
-      <UiCard class-name="p-4 bg-[#dbeafe] border border-[#00a6ff]/20">
+      <!-- Network Status Banner -->
+      <UiCard v-if="!isOnline" class-name="p-4 bg-[#fee2e2] border border-[#ef4444]/20">
         <div class="flex items-start gap-3">
-          <Icon name="lucide:info" size="20" class="text-[#00a6ff] flex-shrink-0 mt-0.5" />
+          <Icon name="lucide:wifi-off" size="20" class="text-[#ef4444] shrink-0 mt-0.5" />
           <div>
-            <p class="text-[13px] text-[#1e293b] font-medium mb-1">
-              คิวออฟไลน์
+            <p class="text-[13px] text-[#ef4444] font-bold mb-1">ออฟไลน์</p>
+            <p class="text-[12px] text-[#ef4444]/80">
+              ข้อมูลจะถูกซิงค์อัตโนมัติเมื่อเชื่อมต่ออินเทอร์เน็ต
             </p>
+          </div>
+        </div>
+      </UiCard>
+
+      <!-- Info Banner -->
+      <UiCard v-else class-name="p-4 bg-[#dbeafe] border border-[#00a6ff]/20">
+        <div class="flex items-start gap-3">
+          <Icon name="lucide:info" size="20" class="text-[#00a6ff] shrink-0 mt-0.5" />
+          <div>
+            <p class="text-[13px] text-[#1e293b] font-medium mb-1">คิวออฟไลน์</p>
             <p class="text-[12px] text-[#64748b]">
               รายการที่บันทึกไว้ขณะออฟไลน์ จะถูกส่งอัตโนมัติเมื่อเชื่อมต่ออินเทอร์เน็ตอีกครั้ง
             </p>
@@ -25,10 +36,10 @@
         size="large"
         full-width
         icon="lucide:refresh-cw"
-        @click="syncNow"
-        :disabled="isSyncing"
+        @click="handleSync"
+        :disabled="syncState.isSyncing.value || !isOnline"
       >
-        {{ isSyncing ? 'กำลังซิงค์...' : `ซิงค์ทันที (${queueItems.length} รายการ)` }}
+        {{ syncState.isSyncing.value ? 'กำลังซิงค์...' : `ซิงค์ทันที (${queueItems.length} รายการ)` }}
       </UiButton>
 
       <!-- Queue List -->
@@ -39,17 +50,19 @@
           class-name="p-4"
         >
           <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0"
+            <div class="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0"
                  :class="getTypeColor(item.type)">
               <Icon :name="getTypeIcon(item.type)" size="20" class="text-white" />
             </div>
             
             <div class="flex-1 min-w-0">
               <div class="flex items-start justify-between mb-2">
-                <h4 class="text-[14px] font-bold text-slate-800">
-                  {{ item.title }}
-                </h4>
-                <UiBadge label="รอซิงค์" variant="warning" size="small" />
+                <h4 class="text-[14px] font-bold text-slate-800">{{ item.title }}</h4>
+                <UiBadge
+                  :label="getStatusLabel(item.status)"
+                  :variant="getStatusVariant(item.status)"
+                  size="small"
+                />
               </div>
               
               <p class="text-[12px] text-slate-600 mb-2">{{ item.description }}</p>
@@ -58,12 +71,17 @@
                 <span class="text-[11px] text-slate-500">
                   {{ formatDate(item.createdAt) }}
                 </span>
-                <button
-                  @click="removeItem(item.id)"
-                  class="text-[11px] text-[#ff3b30] hover:underline"
-                >
-                  ลบ
-                </button>
+                <div class="flex items-center gap-3">
+                  <span v-if="item.retryCount > 0" class="text-[11px] text-[#fe9a00]">
+                    ลองแล้ว {{ item.retryCount }} ครั้ง
+                  </span>
+                  <button
+                    @click="handleRemove(item.id)"
+                    class="text-[11px] text-[#ff3b30] hover:underline"
+                  >
+                    ลบ
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -85,28 +103,45 @@
 </template>
 
 <script setup lang="ts">
-const router = useRouter()
-const isSyncing = ref(false)
+import type { OfflineQueueItem } from '~/composables/useOfflineStorage'
 
-interface QueueItem {
-  id: string
-  type: 'notification' | 'worklog' | 'parts' | 'closeout'
-  title: string
-  description: string
-  createdAt: Date
-  data: any
+const { isOnline } = useNetworkStatus()
+const { getQueue, removeFromQueue } = useOfflineStorage()
+const syncState = useOfflineSync()
+const { success: showSuccess } = useToast()
+
+const queueItems = ref<OfflineQueueItem[]>([])
+
+const loadQueue = async () => {
+  try {
+    queueItems.value = await getQueue()
+    // Sort by createdAt desc
+    queueItems.value.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  } catch (err) {
+    console.error('Failed to load queue:', err)
+  }
 }
 
-const queueItems = ref<QueueItem[]>([
-  // Mock data - จะถูกแทนที่ด้วย localStorage ใน Phase 2
-])
+onMounted(loadQueue)
+
+const handleSync = async () => {
+  await syncState.syncAll()
+  await loadQueue()
+}
+
+const handleRemove = async (id: string) => {
+  await removeFromQueue(id)
+  showSuccess('ลบรายการแล้ว')
+  await loadQueue()
+}
 
 const getTypeIcon = (type: string) => {
   const icons: Record<string, string> = {
     notification: 'lucide:file-text',
     worklog: 'lucide:clock',
     parts: 'lucide:package',
-    closeout: 'lucide:check-circle'
+    closeout: 'lucide:check-circle',
+    evaluation: 'lucide:star'
   }
   return icons[type] || 'lucide:file'
 }
@@ -116,12 +151,31 @@ const getTypeColor = (type: string) => {
     notification: 'bg-[#00a6ff]',
     worklog: 'bg-[#fe9a00]',
     parts: 'bg-[#6dd400]',
-    closeout: 'bg-[#8b5cf6]'
+    closeout: 'bg-[#8b5cf6]',
+    evaluation: 'bg-[#f59e0b]'
   }
   return colors[type] || 'bg-slate-400'
 }
 
-const formatDate = (date: Date) => {
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    pending: 'รอซิงค์',
+    syncing: 'กำลังซิงค์',
+    failed: 'ล้มเหลว'
+  }
+  return labels[status] || status
+}
+
+const getStatusVariant = (status: string): 'warning' | 'info' | 'danger' => {
+  const variants: Record<string, 'warning' | 'info' | 'danger'> = {
+    pending: 'warning',
+    syncing: 'info',
+    failed: 'danger'
+  }
+  return variants[status] || 'warning'
+}
+
+const formatDate = (date: string) => {
   return new Date(date).toLocaleString('th-TH', {
     day: 'numeric',
     month: 'short',
@@ -129,25 +183,5 @@ const formatDate = (date: Date) => {
     hour: '2-digit',
     minute: '2-digit'
   })
-}
-
-const syncNow = async () => {
-  isSyncing.value = true
-  
-  // Simulate sync
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  
-  // Clear queue
-  queueItems.value = []
-  isSyncing.value = false
-  
-  // Show success message (ใน Phase 2 จะใช้ Toast)
-  alert('ซิงค์ข้อมูลสำเร็จ!')
-}
-
-const removeItem = (id: string) => {
-  if (confirm('ต้องการลบรายการนี้?')) {
-    queueItems.value = queueItems.value.filter(item => item.id !== id)
-  }
 }
 </script>

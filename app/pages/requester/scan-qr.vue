@@ -15,10 +15,10 @@
           size="large"
           full-width
           icon="lucide:camera"
+          :disabled="scanning"
           @click="handleOpenCamera"
         >
-          <!-- @click="showScanner = true" -->
-          เปิดกล้อง
+          {{ scanning ? 'กำลังประมวลผล...' : 'เปิดกล้อง' }}
         </UiButton>
       </UiCard>
 
@@ -80,29 +80,50 @@
 
 <script setup lang="ts">
 const router = useRouter()
-const { success: showSuccess } = useToast()
+const { success: showSuccess, error: showError } = useToast()
+const { parseQRCode } = useAssetService()
 
 const showScanner = ref(false)
 const lastScanResult = ref('')
+const scanning = ref(false)
 
-const handleScan = (result: string) => {
+const handleScan = async (result: string) => {
+  if (scanning.value) return
+  
+  scanning.value = true
   lastScanResult.value = result
   showScanner.value = false
-  showSuccess('สแกน QR Code สำเร็จ')
+
+  try {
+    // Parse QR code and get asset data
+    const asset = await parseQRCode(result)
+    
+    showSuccess('สแกน QR Code สำเร็จ')
+    
+    // Redirect to create notification with asset data
+    router.push({
+      path: '/requester/create-notification',
+      query: {
+        asset_id: asset.id.toString(),
+        asset_code: asset.asset_code,
+        asset_name: asset.asset_name,
+        location: asset.location
+      }
+    })
+  } catch (err: any) {
+    showError(err.message || 'QR Code ไม่ถูกต้อง')
+    lastScanResult.value = ''
+  } finally {
+    scanning.value = false
+  }
 }
 
-const handleProceedWithScan = () => {
-  // TODO: Parse QR data and populate form
-  // For now, redirect to create notification with query params
-  router.push({
-    path: '/requester/create-notification',
-    query: { qr: lastScanResult.value }
-  })
+const handleProceedWithScan = async () => {
+  if (!lastScanResult.value) return
+  await handleScan(lastScanResult.value)
 }
 
 const handleOpenCamera = () => {
-  // TODO: Implement QR scanner in Phase 2
-  // For now, redirect to create notification
-  router.push('/requester/create-notification')
+  showScanner.value = true
 }
 </script>

@@ -185,6 +185,17 @@ const showConfirmModal = ref(false)
 const showPhotoOptions = ref(false)
 const showCamera = ref(false)
 const galleryInputRef = ref<HTMLInputElement | null>(null)
+const elapsedSeconds = ref(0)
+
+// Load worklog data from localStorage
+onMounted(() => {
+  const saved = localStorage.getItem(`worklog_${jobId.value}`)
+  if (saved) {
+    const data = JSON.parse(saved)
+    summary.value = data.notes || ''
+    elapsedSeconds.value = data.elapsedSeconds || 0
+  }
+})
 
 const { photos, isProcessing, error, processFiles, removePhotoByIndex } = usePhotoUpload({
   maxSizeMB: 5,
@@ -194,6 +205,8 @@ const { photos, isProcessing, error, processFiles, removePhotoByIndex } = usePho
 })
 
 const { success: showSuccess, error: showError } = useToast()
+const { isOnline } = useNetworkStatus()
+const { addToQueue } = useOfflineStorage()
 
 const openCamera = () => {
   showPhotoOptions.value = false
@@ -245,13 +258,51 @@ const handleCompleteClick = () => {
   showConfirmModal.value = true
 }
 
-const handleConfirmComplete = () => {
+const handleConfirmComplete = async () => {
   showConfirmModal.value = false
-  showSuccess('ปิดงานสำเร็จ', 'บันทึกข้อมูลเรียบร้อยแล้ว')
-  
-  setTimeout(() => {
-    router.push('/technician/jobs')
-  }, 1000)
+
+  const laborHours = Math.round((elapsedSeconds.value / 3600) * 10) / 10
+
+  const closeoutData = {
+    cm_history_id: Number(jobId.value),
+    root_cause: summary.value,
+    corrective_action: summary.value,
+    preventive_recommendation: '',
+    labor_hours: laborHours,
+    completion_date: new Date().toISOString(),
+    completed_by: 'Current Technician', // Get from useAuth().user
+    signature: signature.value || '',
+    photos: photos.value.map(p => p.preview)
+  }
+
+  // If offline, save to queue
+  if (!isOnline.value) {
+    await addToQueue({
+      type: 'closeout',
+      title: `ปิดงาน: ${jobId.value}`,
+      description: summary.value.slice(0, 100),
+      data: closeoutData,
+      photos: photos.value.map(p => p.preview)
+    })
+    showSuccess('บันทึกลงคิวออฟไลน์แล้ว')
+    // Clear localStorage
+    localStorage.removeItem(`worklog_${jobId.value}`)
+    setTimeout(() => router.push('/technician/jobs'), 1000)
+    return
+  }
+
+  // If online, send to API
+  try {
+    const { closeoutJob } = useTechnicianService()
+    await closeoutJob(Number(jobId.value), closeoutData)
+    // Clear localStorage
+    localStorage.removeItem(`worklog_${jobId.value}`)
+    setTimeout(() => {
+      router.push('/technician/jobs')
+    }, 1000)
+  } catch (error) {
+    console.error('Failed to closeout job:', error)
+  }
 }
 </script>
 

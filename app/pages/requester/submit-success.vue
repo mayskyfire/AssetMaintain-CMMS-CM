@@ -23,16 +23,16 @@
           <div class="flex items-center justify-between mb-2">
             <span class="text-[12px] text-slate-500">อุปกรณ์</span>
             <span class="text-[13px] font-bold text-slate-800">
-              เครื่องปรับอากาศ AC-001
+              {{ assetName }}
             </span>
           </div>
           <div class="flex items-center justify-between mb-2">
             <span class="text-[12px] text-slate-500">ประเภท</span>
-            <span class="text-[13px] font-bold text-[#ef4444]">Z1 - เสียหาย</span>
+            <span class="text-[13px] font-bold text-[#ef4444]">{{ problemCategory }}</span>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-[12px] text-slate-500">ความสำคัญ</span>
-            <span class="text-[13px] font-bold text-[#ef4444]">Priority 1</span>
+            <span class="text-[13px] font-bold text-[#ef4444]">{{ priority }}</span>
           </div>
         </div>
 
@@ -48,13 +48,13 @@
           size="large"
           full-width
           icon="lucide:file-text"
-          @click="router.push(`/requester/notification/${notificationId}`)"
+          @click="handleViewDetail"
         >
           ดูรายละเอียดใบแจ้ง
         </UiButton>
 
         <button
-          @click="router.push('/requester/home')"
+          @click="router.push('/requester/')"
           class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-[10px] text-[14px] font-bold transition-colors"
         >
           <Icon name="lucide:home" size="18" />
@@ -67,5 +67,52 @@
 
 <script setup lang="ts">
 const router = useRouter()
-const notificationId = ref('CM-2026-0124')
+const route = useRoute()
+
+// Get notification data from route state or query
+const notificationData = computed(() => {
+  if (route.query.notification) {
+    try {
+      return JSON.parse(route.query.notification as string)
+    } catch {
+      return null
+    }
+  }
+  return null
+})
+
+const notificationId = computed(() => {
+  return notificationData.value?.notification_id || route.query.id || 'CM-2026-0124'
+})
+
+const assetName = computed(() => {
+  return notificationData.value?.asset_name || 'เครื่องปรับอากาศ AC-001'
+})
+
+const problemCategory = computed(() => {
+  const category = notificationData.value?.problem_category || 'breakdown'
+  const labels: Record<string, string> = {
+    breakdown: 'Z1 - เสียหาย',
+    malfunction: 'Z2 - ทำงานผิดปกติ',
+    maintenance: 'Z3 - บำรุงรักษา',
+    other: 'อื่นๆ'
+  }
+  return labels[category] || category
+})
+
+const priority = computed(() => {
+  const p = notificationData.value?.priority || 'high'
+  const labels: Record<string, string> = {
+    critical: 'Priority 1',
+    high: 'Priority 1',
+    medium: 'Priority 2',
+    low: 'Priority 3'
+  }
+  return labels[p] || 'Priority 2'
+})
+
+const handleViewDetail = () => {
+  const id = notificationData.value?.id || notificationId.value
+  router.push(`/requester/notification/${id}`)
+}
 </script>

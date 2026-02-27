@@ -6,7 +6,9 @@
     <div class="p-4 space-y-6 pb-24">
       <!-- Welcome Section -->
       <UiCard class-name="p-6 bg-gradient-to-br from-[#00a6ff] to-[#0084d1]">
-        <h2 class="text-[20px] font-bold text-white mb-2">สวัสดี, ผู้ใช้งาน</h2>
+        <h2 class="text-[20px] font-bold text-white mb-2">
+          สวัสดี, {{ user?.full_name || 'ผู้ใช้งาน' }}
+        </h2>
         <p class="text-[14px] text-white/80">
           พร้อมแจ้งซ่อมหรือติดตามสถานะการซ่อมของคุณ
         </p>
@@ -80,7 +82,14 @@
           </button>
         </div>
 
-        <div class="space-y-3">
+        <UiLoading v-if="loading" />
+
+        <div v-else-if="recentNotifications.length === 0" class="text-center py-8">
+          <Icon name="lucide:inbox" size="48" class="text-slate-300 mx-auto mb-2" />
+          <p class="text-[14px] text-slate-500">ยังไม่มีรายการแจ้งซ่อม</p>
+        </div>
+
+        <div v-else class="space-y-3">
           <UiCard
             v-for="notif in recentNotifications"
             :key="notif.id"
@@ -89,7 +98,7 @@
             @click="router.push(`/requester/notification/${notif.id}`)"
           >
             <div class="flex items-start justify-between mb-2">
-              <span class="text-[13px] font-bold text-[#00a6ff]">{{ notif.id }}</span>
+              <span class="text-[13px] font-bold text-[#00a6ff]">{{ notif.notification_id }}</span>
               <UiBadge
                 :label="getStatusLabel(notif.status)"
                 :variant="getStatusVariant(notif.status)"
@@ -98,16 +107,20 @@
             </div>
 
             <h4 class="text-[14px] font-bold text-slate-800 mb-2">
-              {{ notif.equipment }}
+              {{ notif.asset_name }}
             </h4>
+
+            <p class="text-[12px] text-slate-600 mb-2 line-clamp-2">
+              {{ notif.problem_description }}
+            </p>
 
             <div class="flex items-center justify-between">
               <UiBadge
-                :label="`Priority ${notif.priority}`"
-                :variant="notif.priority === '1' ? 'danger' : 'primary'"
+                :label="`Priority: ${notif.priority}`"
+                :variant="notif.priority === 'critical' || notif.priority === 'high' ? 'danger' : 'primary'"
                 size="small"
               />
-              <span class="text-[11px] text-slate-500">{{ notif.createdAt }}</span>
+              <span class="text-[11px] text-slate-500">{{ formatDate(notif.breakdown_date) }}</span>
             </div>
           </UiCard>
         </div>
@@ -120,39 +133,76 @@
 
 <script setup lang="ts">
 const router = useRouter()
-const isOnline = ref(true)
+const { isOnline } = useNetworkStatus()
+const { user } = useAuth()
+const { getNotifications } = useNotificationService()
+const { notifications, loading } = useNotificationState()
 
-const stats = ref({
-  pending: 3,
-  inProgress: 2,
-  completed: 12
+// Stats
+const stats = computed(() => {
+  if (!notifications.value || !Array.isArray(notifications.value)) {
+    return { pending: 0, inProgress: 0, completed: 0 }
+  }
+  
+  const pending = notifications.value.filter(n => n.status === 'reported' || n.status === 'pending').length
+  const inProgress = notifications.value.filter(n => n.status === 'assigned' || n.status === 'in_progress').length
+  const completed = notifications.value.filter(n => n.status === 'completed').length
+
+  return { pending, inProgress, completed }
 })
 
-const recentNotifications = ref([
-  {
-    id: 'CM-2026-0123',
-    equipment: 'เครื่องปรับอากาศ AC-02',
-    status: 'inProgress',
-    priority: '2',
-    createdAt: '21 ม.ค. 2026 14:30'
+// Recent notifications (latest 3)
+const recentNotifications = computed(() => {
+  if (!notifications.value || !Array.isArray(notifications.value)) {
+    return []
   }
-])
+  return notifications.value.slice(0, 3)
+})
+
+// Load data on mount
+onMounted(async () => {
+  try {
+    await getNotifications({
+      page: 1,
+      limit: 10
+    })
+  } catch (error) {
+    console.error('Failed to load notifications:', error)
+  }
+})
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
+    reported: 'รอดำเนินการ',
     pending: 'รอดำเนินการ',
-    inProgress: 'กำลังซ่อม',
-    completed: 'เสร็จสิ้น'
+    assigned: 'กำลังซ่อม',
+    in_progress: 'กำลังซ่อม',
+    completed: 'เสร็จสิ้น',
+    evaluated: 'เสร็จสิ้น'
   }
   return labels[status] || status
 }
 
 const getStatusVariant = (status: string) => {
   const variants: Record<string, any> = {
+    reported: 'warning',
     pending: 'warning',
-    inProgress: 'primary',
-    completed: 'success'
+    assigned: 'primary',
+    in_progress: 'primary',
+    completed: 'success',
+    evaluated: 'success'
   }
   return variants[status] || 'secondary'
+}
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 </script>

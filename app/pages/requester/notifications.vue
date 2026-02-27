@@ -36,18 +36,18 @@
               : 'bg-white text-slate-500 border border-slate-200'
           ]"
         >
-          รอดำเนินการ
+          รอดำเนินการ ({{ pendingCount }})
         </button>
         <button
-          @click="filterStatus = 'inProgress'"
+          @click="filterStatus = 'in_progress'"
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
-            filterStatus === 'inProgress'
+            filterStatus === 'in_progress'
               ? 'bg-[#dbeafe] text-[#1447e6] border-2 border-[#2b7fff]'
               : 'bg-white text-slate-500 border border-slate-200'
           ]"
         >
-          กำลังซ่อม
+          กำลังซ่อม ({{ inProgressCount }})
         </button>
         <button
           @click="filterStatus = 'completed'"
@@ -58,12 +58,14 @@
               : 'bg-white text-slate-500 border border-slate-200'
           ]"
         >
-          เสร็จสิ้น
+          เสร็จสิ้น ({{ completedCount }})
         </button>
       </div>
 
       <!-- Notification List -->
-      <div class="space-y-3">
+      <UiLoading v-if="loading" />
+
+      <div v-else class="space-y-3">
         <UiCard
           v-for="notif in filteredNotifications"
           :key="notif.id"
@@ -73,7 +75,7 @@
         >
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-2">
-              <span class="text-[13px] font-bold text-[#00a6ff]">{{ notif.id }}</span>
+              <span class="text-[13px] font-bold text-[#00a6ff]">{{ notif.notification_id }}</span>
             </div>
             <UiBadge
               :label="getStatusLabel(notif.status)"
@@ -83,16 +85,20 @@
           </div>
 
           <h4 class="text-[14px] font-bold text-slate-800 mb-2">
-            {{ notif.equipment }}
+            {{ notif.asset_name }}
           </h4>
+
+          <p class="text-[12px] text-slate-600 mb-2 line-clamp-2">
+            {{ notif.problem_description }}
+          </p>
 
           <div class="flex items-center justify-between">
             <UiBadge
-              :label="`Priority ${notif.priority}`"
-              :variant="notif.priority === '1' ? 'danger' : 'primary'"
+              :label="`Priority: ${notif.priority}`"
+              :variant="notif.priority === 'critical' || notif.priority === 'high' ? 'danger' : 'primary'"
               size="small"
             />
-            <span class="text-[11px] text-slate-500">{{ notif.createdAt }}</span>
+            <span class="text-[11px] text-slate-500">{{ formatDate(notif.breakdown_date) }}</span>
           </div>
         </UiCard>
 
@@ -110,60 +116,88 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const { getNotifications } = useNotificationService()
+const { notifications, loading } = useNotificationState()
+
 const searchTerm = ref('')
 const filterStatus = ref('all')
 
-const notifications = ref([
-  {
-    id: 'CM-2026-0123',
-    equipment: 'เครื่องปรับอากาศ AC-02',
-    status: 'inProgress',
-    priority: '2',
-    createdAt: '21 ม.ค. 2026 14:30',
-    description: 'แอร์ไม่เย็น มีน้ำหยด'
-  },
-  {
-    id: 'CM-2026-0122',
-    equipment: 'ปั๊มน้ำ P-01',
-    status: 'completed',
-    priority: '1',
-    createdAt: '20 ม.ค. 2026 09:15',
-    description: 'ปั๊มไม่ทำงาน'
-  },
-  {
-    id: 'CM-2026-0121',
-    equipment: 'เครื่องปรับอากาศ AC-01',
-    status: 'pending',
-    priority: '2',
-    createdAt: '19 ม.ค. 2026 16:45',
-    description: 'แอร์มีกลิ่นเหม็น'
+// Load notifications on mount
+onMounted(async () => {
+  try {
+    await getNotifications({
+      page: 1,
+      limit: 50
+    })
+  } catch (error) {
+    console.error('Failed to load notifications:', error)
   }
-])
+})
 
+// Status counts
+const pendingCount = computed(() => 
+  notifications.value.filter(n => n.status === 'reported' || n.status === 'pending').length
+)
+const inProgressCount = computed(() => 
+  notifications.value.filter(n => n.status === 'assigned' || n.status === 'in_progress').length
+)
+const completedCount = computed(() => 
+  notifications.value.filter(n => n.status === 'completed' || n.status === 'evaluated').length
+)
+
+// Filtered notifications
 const filteredNotifications = computed(() => {
   return notifications.value.filter((notif) => {
-    const matchesSearch = notif.id.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      notif.equipment.toLowerCase().includes(searchTerm.value.toLowerCase())
-    const matchesStatus = filterStatus.value === 'all' || notif.status === filterStatus.value
+    const matchesSearch = 
+      (notif.notification_id || '').toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+      (notif.asset_name || '').toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+      (notif.problem_description || '').toLowerCase().includes(searchTerm.value.toLowerCase())
+    
+    let matchesStatus = true
+    if (filterStatus.value === 'pending') {
+      matchesStatus = notif.status === 'reported' || notif.status === 'pending'
+    } else if (filterStatus.value === 'in_progress') {
+      matchesStatus = notif.status === 'assigned' || notif.status === 'in_progress'
+    } else if (filterStatus.value === 'completed') {
+      matchesStatus = notif.status === 'completed' || notif.status === 'evaluated'
+    }
+    
     return matchesSearch && matchesStatus
   })
 })
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
+    reported: 'รอดำเนินการ',
     pending: 'รอดำเนินการ',
-    inProgress: 'กำลังซ่อม',
-    completed: 'เสร็จสิ้น'
+    assigned: 'กำลังซ่อม',
+    in_progress: 'กำลังซ่อม',
+    completed: 'เสร็จสิ้น',
+    evaluated: 'เสร็จสิ้น'
   }
   return labels[status] || status
 }
 
 const getStatusVariant = (status: string) => {
   const variants: Record<string, any> = {
+    reported: 'warning',
     pending: 'warning',
-    inProgress: 'primary',
-    completed: 'success'
+    assigned: 'primary',
+    in_progress: 'primary',
+    completed: 'success',
+    evaluated: 'success'
   }
   return variants[status] || 'secondary'
+}
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 </script>

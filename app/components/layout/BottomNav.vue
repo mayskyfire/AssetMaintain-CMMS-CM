@@ -32,7 +32,7 @@ interface NavItem {
 const navItems = computed<NavItem[]>(() => {
   if (props.role === 'requester') {
     return [
-      { path: '/requester/home', icon: 'lucide:home', label: 'หน้าหลัก' },
+      { path: '/requester/', icon: 'lucide:home', label: 'หน้าหลัก' },
       { path: '/requester/notifications', icon: 'lucide:list', label: 'ประวัติ' },
       { path: '/requester/profile', icon: 'lucide:user', label: 'โปรไฟล์' }
     ]

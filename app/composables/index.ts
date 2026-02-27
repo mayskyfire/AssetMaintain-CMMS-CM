@@ -1,3 +1,2 @@
-// Export all composables for better auto-import support
-export { useToast } from './useToast'
-export { useFormValidation, validationRules } from './useFormValidation'
+// Composables are auto-imported by Nuxt from this directory.
+// No manual exports needed — Nuxt scans all .ts files in composables/.
