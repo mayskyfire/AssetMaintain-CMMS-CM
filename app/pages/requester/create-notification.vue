@@ -5,7 +5,13 @@
     <div class="p-4 space-y-4 pb-24">
       <!-- Equipment Info -->
       <UiCard class-name="p-4 bg-[#dbeafe]">
-        <h3 class="text-[13px] font-bold text-slate-800 mb-2">ข้อมูลอุปกรณ์</h3>
+        <div class="flex items-start justify-between mb-2">
+          <h3 class="text-[13px] font-bold text-slate-800">ข้อมูลอุปกรณ์</h3>
+          <UiBadge v-if="qrData" variant="success" size="small">
+            <Icon name="lucide:qr-code" size="12" class="mr-1" />
+            จาก QR
+          </UiBadge>
+        </div>
         <p class="text-[14px] font-bold text-[#00a6ff] mb-1">
           {{ formData.equipment }}
         </p>
@@ -70,10 +76,26 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const route = useRoute()
+const { success: showSuccess, error: showError } = useToast()
+
+// Parse QR data if available
+const qrData = computed(() => {
+  const qr = route.query.qr as string
+  if (!qr) return null
+  
+  try {
+    // Try to parse as JSON first
+    return JSON.parse(qr)
+  } catch {
+    // If not JSON, treat as equipment ID
+    return { equipmentId: qr }
+  }
+})
 
 const formData = ref({
-  equipment: 'เครื่องปรับอากาศ AC-001',
-  location: 'ห้องประชุม A, อาคาร 1',
+  equipment: qrData.value?.equipmentName || qrData.value?.equipmentId || 'เครื่องปรับอากาศ AC-001',
+  location: qrData.value?.location || 'ห้องประชุม A, อาคาร 1',
   type: 'Z1',
   priority: '1',
   description: ''
@@ -90,8 +112,6 @@ const priorityOptions = [
   { value: '3', label: 'Priority 3 - ปกติ (ภายใน 3 วัน)' },
   { value: '4', label: 'Priority 4 - ไม่ด่วน (ภายใน 7 วัน)' }
 ]
-
-const { success: showSuccess, error: showError } = useToast()
 
 const handleSubmit = () => {
   // Basic validation
