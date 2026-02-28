@@ -22,8 +22,6 @@ export default defineEventHandler(async (event) => {
       unit_cost: number | null
       total_cost: number | null
       requested_date: Date
-      requested_by: number
-      status: 'pending' | 'approved' | 'rejected'
     }>(
       `SELECT 
         id,
@@ -34,12 +32,10 @@ export default defineEventHandler(async (event) => {
         unit,
         unit_cost,
         total_cost,
-        requested_date,
-        requested_by,
-        status
-       FROM cm_parts
+        created_at AS requested_date
+       FROM cm_parts_used
        WHERE cm_history_id = ?
-       ORDER BY requested_date DESC`,
+       ORDER BY created_at DESC`,
       [jobId]
     )
 

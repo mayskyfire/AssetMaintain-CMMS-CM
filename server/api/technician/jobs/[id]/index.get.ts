@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
       root_cause: string | null
       corrective_action: string | null
       priority: 'low' | 'medium' | 'high' | 'critical'
-      status: 'reported' | 'in_progress' | 'completed' | 'cancelled'
+      status: 'reported' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
       requester_name: string
       technician_id: number | null
       accepted_at: Date | null

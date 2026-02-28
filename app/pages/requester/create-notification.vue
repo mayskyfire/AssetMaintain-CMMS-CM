@@ -169,16 +169,15 @@ const handleSubmit = async () => {
       await removeDraft(draftKey)
       showSuccess('บันทึกลงคิวออฟไลน์แล้ว')
       
-      // Navigate to submit-success with data
+      // Navigate to evidence-upload with offline data
       router.push({
-        path: '/requester/submit-success',
+        path: '/requester/evidence-upload',
         query: {
-          notification: JSON.stringify({
-            notification_id: 'OFFLINE-' + Date.now(),
-            asset_name: formData.value.asset_name,
-            problem_category: formData.value.problem_category,
-            priority: formData.value.priority
-          })
+          offline: 'true',
+          notification_id: 'OFFLINE-' + Date.now(),
+          asset_name: formData.value.asset_name,
+          problem_category: formData.value.problem_category,
+          priority: formData.value.priority
         }
       })
       return
@@ -197,22 +196,20 @@ const handleSubmit = async () => {
     await removeDraft(draftKey)
     showSuccess('สร้างใบแจ้งซ่อมสำเร็จ')
     
-    // Navigate to submit-success with data
+    // Navigate to evidence-upload with notification data
     if (response.success && response.data) {
       router.push({
-        path: '/requester/submit-success',
+        path: '/requester/evidence-upload',
         query: {
-          notification: JSON.stringify({
-            id: response.data.id,
-            notification_id: response.data.notification_id,
-            asset_name: formData.value.asset_name,
-            problem_category: formData.value.problem_category,
-            priority: formData.value.priority
-          })
+          notification_id: response.data.notification_id,
+          cm_history_id: response.data.id.toString(),
+          asset_name: formData.value.asset_name,
+          problem_category: formData.value.problem_category,
+          priority: formData.value.priority
         }
       })
     } else {
-      router.push('/requester/submit-success')
+      router.push('/requester/evidence-upload')
     }
   } catch (err: any) {
     showError(err.message || 'สร้างใบแจ้งซ่อมไม่สำเร็จ')

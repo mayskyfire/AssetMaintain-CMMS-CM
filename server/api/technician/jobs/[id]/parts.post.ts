@@ -66,6 +66,14 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Get user full name for timeline
+    const user = await queryOne<{ full_name: string }>(
+      'SELECT full_name FROM users WHERE id = ? LIMIT 1',
+      [payload.userId]
+    )
+
+    const userName = user?.full_name || 'ช่างเทคนิค'
+
     // Insert parts into database
     const insertedParts = []
     
@@ -106,9 +114,9 @@ export default defineEventHandler(async (event) => {
 
     // Add timeline event
     await query(
-      `INSERT INTO cm_timeline (cm_history_id, event, user_id, status)
-       VALUES (?, ?, ?, ?)`,
-      [jobId, `บันทึกอะไหล่ ${insertedParts.length} รายการ`, payload.userId, null]
+      `INSERT INTO cm_timeline (cm_history_id, event, user, status, time)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [jobId, `บันทึกอะไหล่ ${insertedParts.length} รายการ`, userName, null]
     )
 
     return {

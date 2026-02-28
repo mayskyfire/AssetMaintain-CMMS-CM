@@ -29,7 +29,7 @@
             <slot />
 
             <!-- Actions (hide when using custom body without confirm) -->
-            <div v-if="confirmText" class="space-y-2" :class="{ 'mt-6': $slots.default }">
+            <div v-if="showActions && confirmText" class="space-y-2" :class="{ 'mt-6': $slots.default }">
               <UiButton
                 :variant="confirmVariant"
                 size="large"
@@ -59,16 +59,19 @@
 interface Props {
   isOpen: boolean
   title: string
-  message: string
+  message?: string
   confirmText?: string
   cancelText?: string
   confirmVariant?: 'primary' | 'success' | 'danger' | 'secondary'
+  showActions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  message: '',
   confirmText: 'ยืนยัน',
   cancelText: 'ยกเลิก',
-  confirmVariant: 'primary'
+  confirmVariant: 'primary',
+  showActions: true
 })
 
 const emit = defineEmits<{

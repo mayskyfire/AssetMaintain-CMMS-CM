@@ -1,11 +1,35 @@
 export default defineEventHandler(async (event) => {
   try {
+    // Get authenticated user from token
+    const authHeader = getHeader(event, 'authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    
+    if (!token) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized',
+        message: 'Authentication required'
+      })
+    }
+
+    // Decode token to get user info
+    const decoded = verifyToken(token)
+    
+    if (!decoded) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized',
+        message: 'Invalid or expired token'
+      })
+    }
+    
+    const technicianId = decoded.userId
+
     // Get query parameters
     const queryParams = getQuery(event)
     const page = parseInt(queryParams.page as string) || 1
     const limit = parseInt(queryParams.limit as string) || 20
     const offset = (page - 1) * limit
-    const technicianId = parseInt(queryParams.technician_id as string) || 2 // Default to test technician
 
     // Query jobs assigned to technician
     const jobs = await query<{
@@ -48,8 +72,8 @@ export default defineEventHandler(async (event) => {
        WHERE cm.technician_id = ?
        ORDER BY 
          CASE cm.status
-           WHEN 'in_progress' THEN 1
-           WHEN 'reported' THEN 2
+           WHEN 'reported' THEN 1
+           WHEN 'in_progress' THEN 2
            WHEN 'completed' THEN 3
          END,
          CASE cm.priority

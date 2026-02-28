@@ -39,9 +39,9 @@
                 <div>
                   <p class="text-[14px] font-bold text-slate-800">{{ tech.full_name }}</p>
                   <div class="flex items-center gap-2 mt-1">
-                    <span class="text-[11px] text-slate-500">งานปัจจุบัน: {{ tech.current_jobs }}</span>
+                    <span class="text-[11px] text-slate-500">งานปัจจุบัน: {{ tech.current_jobs || 0 }}</span>
                     <span class="text-[11px] text-slate-500">•</span>
-                    <span class="text-[11px] text-slate-500">⭐ {{ tech.avg_rating.toFixed(1) }}</span>
+                    <span class="text-[11px] text-slate-500">⭐ {{ formatRating(tech.avg_rating) }}</span>
                   </div>
                 </div>
               </div>
@@ -159,5 +159,11 @@ const handleConfirmAssign = async () => {
 const getSelectedTechName = () => {
   const tech = technicians.value.find(t => t.id === selectedTechId.value)
   return tech?.full_name || ''
+}
+
+const formatRating = (rating: any) => {
+  if (!rating) return 'N/A'
+  const num = typeof rating === 'string' ? parseFloat(rating) : rating
+  return isNaN(num) ? 'N/A' : num.toFixed(1)
 }
 </script>

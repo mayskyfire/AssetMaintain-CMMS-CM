@@ -1,14 +1,35 @@
 export default defineEventHandler(async (event) => {
   try {
-    // Get query parameters
-    const queryParams = getQuery(event)
-    const technicianId = parseInt(queryParams.technician_id as string) || 2 // Default to test technician
+    // Get authenticated user from token
+    const authHeader = getHeader(event, 'authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    
+    if (!token) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized',
+        message: 'Authentication required'
+      })
+    }
+
+    // Decode token to get user info
+    const decoded = verifyToken(token)
+    
+    if (!decoded) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized',
+        message: 'Invalid or expired token'
+      })
+    }
+    
+    const technicianId = decoded.userId
 
     // Get total assigned
     const [assignedResult] = await query<{ total: number }>(
       `SELECT COUNT(*) as total 
        FROM cm_history 
-       WHERE technician_id = ? AND status IN ('reported', 'in_progress')`,
+       WHERE technician_id = ? AND status IN ('assigned', 'in_progress')`,
       [technicianId]
     )
 

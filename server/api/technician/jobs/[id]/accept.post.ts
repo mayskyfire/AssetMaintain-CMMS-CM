@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Check if job exists
+    // Check if job exists and is assigned
     const job = await queryOne<{
       id: number
       status: string
@@ -32,12 +32,26 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    if (job.status !== 'assigned') {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Bad Request',
+        message: 'Job must be in assigned status to accept'
+      })
+    }
+
     if (job.accepted_at) {
       throw createError({
         statusCode: 400,
         statusMessage: 'Bad Request',
         message: 'Job already accepted'
       })
+    }
+
+    // Convert ISO datetime to MySQL format (Thailand timezone)
+    let qrScannedStart = null
+    if (body.qr_scanned_start) {
+      qrScannedStart = toThaiDatetime(body.qr_scanned_start)
     }
 
     // Accept job
@@ -49,7 +63,7 @@ export default defineEventHandler(async (event) => {
            status = 'in_progress',
            updated_at = NOW()
        WHERE id = ?`,
-      [body.accepted_by || 'ช่าง', body.qr_scanned_start || null, id]
+      [body.accepted_by || 'ช่าง', qrScannedStart, id]
     )
 
     return {

@@ -294,6 +294,25 @@ const handleConfirmComplete = async () => {
   // If online, send to API
   try {
     const { closeoutJob } = useTechnicianService()
+    const { uploadBase64Image } = useImageUpload()
+    
+    // Upload photos first if any
+    const uploadedPhotoUrls: string[] = []
+    if (photos.value.length > 0) {
+      for (const photo of photos.value) {
+        const uploaded = await uploadBase64Image(
+          Number(jobId.value),
+          'after',
+          photo.preview,
+          photo.file?.name || `after-${Date.now()}.jpg`
+        )
+        uploadedPhotoUrls.push(uploaded.path)
+      }
+    }
+    
+    // Update closeout data with uploaded photo URLs
+    closeoutData.photos = uploadedPhotoUrls
+    
     await closeoutJob(Number(jobId.value), closeoutData)
     // Clear localStorage
     localStorage.removeItem(`worklog_${jobId.value}`)

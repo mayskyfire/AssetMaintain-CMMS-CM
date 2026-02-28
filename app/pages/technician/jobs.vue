@@ -119,6 +119,9 @@ const handleJobClick = (job: any) => {
     router.push(`/technician/accept/${job.id}`)
   } else if (job.status === 'in_progress') {
     router.push(`/technician/worklog/${job.id}`)
+  } else if (job.status === 'completed') {
+    // View completed job details
+    router.push(`/technician/job-detail/${job.id}`)
   }
 }
 </script>

@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
       problem_category: string | null
       problem_description: string
       priority: 'low' | 'medium' | 'high' | 'critical'
-      status: 'reported' | 'in_progress' | 'completed' | 'cancelled'
+      status: 'reported' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
       requester_id: number
       requester_name: string
       technician_id: number | null

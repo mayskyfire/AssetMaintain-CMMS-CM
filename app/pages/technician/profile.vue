@@ -45,7 +45,7 @@
               <Icon name="lucide:phone" size="20" class="text-slate-500" />
               <div>
                 <p class="text-[11px] text-slate-500">เบอร์โทรศัพท์</p>
-                <p class="text-[13px] text-slate-800">{{ user?.phone || '-' }}</p>
+                <p class="text-[13px] text-slate-800">{{ user?.phone_number || '-' }}</p>
               </div>
             </div>
 

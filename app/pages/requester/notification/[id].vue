@@ -121,7 +121,7 @@
             :key="img.id"
             class="relative aspect-square rounded-[8px] overflow-hidden bg-slate-100"
           >
-            <img :src="img.url" :alt="img.caption || 'Evidence'" class="w-full h-full object-cover" />
+            <img :src="getImageUrl(img.url)" :alt="img.caption || 'Evidence'" class="w-full h-full object-cover" />
             <div v-if="img.caption" class="absolute bottom-0 left-0 right-0 bg-black/50 p-2">
               <p class="text-[11px] text-white">{{ img.caption }}</p>
             </div>
@@ -202,6 +202,7 @@ const router = useRouter()
 const route = useRoute()
 const { getNotificationDetail } = useNotificationService()
 const { currentNotification, loading } = useNotificationState()
+const { getImageUrl } = useImageUrl()
 
 const id = Number(route.params.id)
 

@@ -67,7 +67,7 @@
               <img 
                 v-for="img in currentJob.evidence_images" 
                 :key="img.id"
-                :src="img.url" 
+                :src="getImageUrl(img.url)" 
                 :alt="img.caption"
                 class="w-full h-32 object-cover rounded-lg"
               />
@@ -115,6 +115,7 @@ const router = useRouter()
 const { user } = useAuth()
 const { getJobDetail, acceptJob } = useTechnicianService()
 const { currentJob, loading } = useTechnicianState()
+const { getImageUrl } = useImageUrl()
 
 const jobId = computed(() => Number(route.params.id))
 
@@ -160,6 +161,7 @@ const formatDate = (dateString: string) => {
 
 const handleAccept = async () => {
   try {
+    // Send current time as-is; server will convert to Thailand timezone
     await acceptJob({
       cm_history_id: jobId.value,
       accepted_by: user.value?.full_name || 'Technician',

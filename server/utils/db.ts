@@ -17,10 +17,35 @@ export function getDbPool(): mysql.Pool {
       connectionLimit: 10,
       queueLimit: 0,
       enableKeepAlive: true,
-      keepAliveInitialDelay: 0
+      keepAliveInitialDelay: 0,
+      // Handle timezone - set to Asia/Bangkok
+      timezone: '+07:00',
+      // Convert dates to local timezone
+      dateStrings: false,
+      // Performance optimizations
+      maxIdle: 10, // Maximum idle connections
+      idleTimeout: 60000, // 60 seconds
+      connectTimeout: 10000, // 10 seconds
+      // MySQL 9.4 compatibility - CRITICAL
+      multipleStatements: false,
+      namedPlaceholders: false,
+      // Charset
+      charset: 'utf8mb4',
+      supportBigNumbers: true,
+      bigNumberStrings: false,
+      decimalNumbers: true
     })
 
-    console.log('✅ MySQL connection pool created')
+    // Set timezone for all connections in the pool
+    pool.on('connection', (connection) => {
+      connection.query("SET time_zone = '+07:00'", (error) => {
+        if (error) {
+          console.error('❌ Failed to set timezone:', error)
+        }
+      })
+    })
+
+    console.log('✅ MySQL connection pool created with timezone +07:00')
   }
 
   return pool

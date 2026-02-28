@@ -1,12 +1,9 @@
 export default defineNuxtRouteMiddleware((to) => {
   // Skip middleware on server-side
-  if (process.server) return
-
-  // Skip on initial load to prevent hydration issues
-  if (!process.client) return
+  if (import.meta.server) return
 
   try {
-    const { isAuthenticated, getUserInfo } = useAuth()
+    const { isAuthenticated } = useAuth()
 
     // Public routes that don't require authentication
     const publicRoutes = ['/']
@@ -19,23 +16,7 @@ export default defineNuxtRouteMiddleware((to) => {
       return navigateTo('/')
     }
 
-    // If authenticated and trying to access login page, redirect to appropriate home
-    if (to.path === '/' && isAuthenticated()) {
-      const user = getUserInfo()
-      if (user) {
-        switch (user.role) {
-          case 'requester':
-            return navigateTo('/requester/')
-          case 'technician':
-            return navigateTo('/technician/jobs')
-          case 'planner':
-          case 'engineer':
-            return navigateTo('/supervisor/inbox')
-          default:
-            return navigateTo('/requester/')
-        }
-      }
-    }
+    // Redirect for '/' is handled by index.vue page-level middleware
   } catch (error) {
     console.error('Auth middleware error:', error)
     // Don't block navigation on error

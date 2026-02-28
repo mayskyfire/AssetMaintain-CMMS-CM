@@ -41,7 +41,7 @@
         <!-- Action Buttons -->
         <div class="space-y-3">
           <UiButton
-            variant="secondary"
+            variant="primary"
             size="large"
             full-width
             @click="handleSaveWorklog"

@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
       corrective_action: string | null
       preventive_recommendation: string | null
       priority: 'low' | 'medium' | 'high' | 'critical'
-      status: 'reported' | 'in_progress' | 'completed' | 'cancelled'
+      status: 'reported' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
       requester_id: number
       requester_name: string
       technician_id: number | null
@@ -123,14 +123,14 @@ export default defineEventHandler(async (event) => {
       [id]
     )
 
-    // Build timeline
+    // Build timeline (convert dates to Thailand timezone)
     const timeline = []
     
     if (notification.reported_date) {
       timeline.push({
         id: 1,
         event: 'แจ้งซ่อม',
-        time: notification.reported_date.toISOString(),
+        time: toThaiISOString(notification.reported_date),
         user: notification.requester_name,
         status: 'completed'
       })
@@ -140,7 +140,7 @@ export default defineEventHandler(async (event) => {
       timeline.push({
         id: 2,
         event: 'มอบหมายช่าง',
-        time: notification.start_time.toISOString(),
+        time: toThaiISOString(notification.start_time),
         user: notification.supervisor_name || 'ระบบ',
         status: 'completed'
       })
@@ -150,7 +150,7 @@ export default defineEventHandler(async (event) => {
       timeline.push({
         id: 3,
         event: 'ปิดงาน',
-        time: notification.completion_date.toISOString(),
+        time: toThaiISOString(notification.completion_date),
         user: notification.technician_name || 'ช่าง',
         status: 'completed'
       })
@@ -160,7 +160,7 @@ export default defineEventHandler(async (event) => {
       timeline.push({
         id: 4,
         event: 'ประเมินผล',
-        time: notification.evaluated_at.toISOString(),
+        time: toThaiISOString(notification.evaluated_at),
         user: notification.evaluated_by || notification.requester_name,
         status: 'completed'
       })

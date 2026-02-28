@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
     const body = await readBody<AssignTechnicianRequest>(event)
 
     // Validation
-    if (!body.cm_notification_id || !body.technician_id) {
+    if (!body.cm_history_id || !body.technician_id) {
       throw createError({
         statusCode: 400,
         statusMessage: 'Bad Request',
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
       technician_id: number | null
     }>(
       'SELECT id, status, technician_id FROM cm_history WHERE id = ?',
-      [body.cm_notification_id]
+      [body.cm_history_id]
     )
 
     if (!notification) {
@@ -79,10 +79,10 @@ export default defineEventHandler(async (event) => {
        SET technician_id = ?,
            supervisor_id = ?,
            start_time = NOW(),
-           status = 'in_progress',
+           status = 'assigned',
            updated_at = NOW()
        WHERE id = ?`,
-      [body.technician_id, body.supervisor_id || null, body.cm_notification_id]
+      [body.technician_id, body.supervisor_id || null, body.cm_history_id]
     )
 
     return {

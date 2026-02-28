@@ -89,15 +89,16 @@
           variant="primary"
           size="large"
           full-width
-          :disabled="photos.length === 0"
+          :disabled="isProcessing || uploading"
           @click="handleSubmitClick"
         >
-          ส่งใบแจ้งซ่อม ({{ photos.length }} รูป)
+          {{ uploading ? 'กำลังอัพโหลด...' : photos.length > 0 ? `ส่งใบแจ้งซ่อม (${photos.length} รูป)` : 'ส่งใบแจ้งซ่อม' }}
         </UiButton>
 
         <button
           @click="handleSubmitClick"
-          class="w-full py-3 text-[14px] text-slate-600 hover:text-slate-800 transition-colors"
+          :disabled="uploading"
+          class="w-full py-3 text-[14px] text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50"
         >
           ข้ามขั้นตอนนี้
         </button>
@@ -187,10 +188,12 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const route = useRoute()
 const galleryInputRef = ref<HTMLInputElement | null>(null)
 const showConfirmModal = ref(false)
 const showPhotoOptions = ref(false)
 const showCamera = ref(false)
+const uploading = ref(false)
 
 const { photos, isProcessing, error, processFiles, removePhotoByIndex } = usePhotoUpload({
   maxSizeMB: 5,
@@ -200,6 +203,16 @@ const { photos, isProcessing, error, processFiles, removePhotoByIndex } = usePho
 })
 
 const { success: showSuccess, error: showError } = useToast()
+
+// Get notification data from query
+const notificationData = computed(() => ({
+  notification_id: route.query.notification_id as string,
+  cm_history_id: route.query.cm_history_id ? parseInt(route.query.cm_history_id as string) : null,
+  asset_name: route.query.asset_name as string,
+  problem_category: route.query.problem_category as string,
+  priority: route.query.priority as string,
+  offline: route.query.offline === 'true'
+}))
 
 const openCamera = () => {
   showPhotoOptions.value = false
@@ -251,12 +264,60 @@ const removePhoto = (id: string) => {
 }
 
 const handleSubmitClick = () => {
-  showConfirmModal.value = true
+  if (photos.value.length === 0) {
+    // Skip to success page if no photos
+    navigateToSuccess()
+  } else {
+    showConfirmModal.value = true
+  }
 }
 
-const handleConfirmSubmit = () => {
+const handleConfirmSubmit = async () => {
   showConfirmModal.value = false
-  router.push('/requester/submit-success')
+  
+  // If has photos and not offline, upload them
+  if (photos.value.length > 0 && !notificationData.value.offline && notificationData.value.cm_history_id) {
+    uploading.value = true
+    
+    try {
+      const { uploadBase64Image } = useImageUpload()
+      
+      // Upload each photo
+      for (const photo of photos.value) {
+        await uploadBase64Image(
+          notificationData.value.cm_history_id,
+          'evidence',
+          photo.preview,
+          photo.file?.name || `evidence-${Date.now()}.jpg`
+        )
+      }
+      
+      showSuccess('อัพโหลดรูปภาพสำเร็จ')
+    } catch (err: any) {
+      showError(err.message || 'อัพโหลดรูปภาพไม่สำเร็จ')
+      uploading.value = false
+      return // Don't navigate if upload fails
+    } finally {
+      uploading.value = false
+    }
+  }
+  
+  navigateToSuccess()
+}
+
+const navigateToSuccess = () => {
+  router.push({
+    path: '/requester/submit-success',
+    query: {
+      notification: JSON.stringify({
+        id: notificationData.value.cm_history_id,
+        notification_id: notificationData.value.notification_id,
+        asset_name: notificationData.value.asset_name,
+        problem_category: notificationData.value.problem_category,
+        priority: notificationData.value.priority
+      })
+    }
+  })
 }
 </script>
 

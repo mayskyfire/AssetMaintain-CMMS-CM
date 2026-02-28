@@ -97,8 +97,9 @@
                 <button
                   v-if="newParts.length > 1"
                   @click="removePart(index)"
-                  class="text-[12px] text-red-500 hover:text-red-600"
+                  class="w-full mt-2 py-2 px-3 bg-red-50 hover:bg-red-100 border border-red-200 rounded-[10px] text-[13px] text-red-600 font-medium transition-colors flex items-center justify-center gap-2"
                 >
+                  <Icon name="lucide:trash-2" class="w-4 h-4" />
                   ลบรายการนี้
                 </button>
               </div>
@@ -213,9 +214,9 @@ const handleSave = async () => {
       parts: validParts
     })
 
-    // Navigate to closeout page
+    // Navigate back to worklog page
     setTimeout(() => {
-      router.push(`/technician/closeout/${jobId.value}`)
+      router.push(`/technician/worklog/${jobId.value}`)
     }, 800)
   } catch (error) {
     console.error('Failed to save parts:', error)
@@ -225,6 +226,6 @@ const handleSave = async () => {
 }
 
 const handleSkip = () => {
-  router.push(`/technician/closeout/${jobId.value}`)
+  router.push(`/technician/worklog/${jobId.value}`)
 }
 </script>

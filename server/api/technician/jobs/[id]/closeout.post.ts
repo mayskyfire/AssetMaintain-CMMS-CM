@@ -51,6 +51,14 @@ export default defineEventHandler(async (event) => {
     // Calculate total cost
     const totalCost = (body.labor_cost || 0) + (body.parts_cost || 0) + (body.external_cost || 0)
 
+    // Convert completion_date to MySQL format (Thailand timezone)
+    let completionDate = null
+    if (body.completion_date) {
+      completionDate = toThaiDatetime(body.completion_date)
+    } else {
+      completionDate = toThaiDatetime()
+    }
+
     // Close job
     await query(
       `UPDATE cm_history 
@@ -77,7 +85,7 @@ export default defineEventHandler(async (event) => {
         body.parts_cost || null,
         body.external_cost || null,
         totalCost,
-        body.completion_date || new Date().toISOString(),
+        completionDate,
         body.completed_by || 'ช่าง',
         id
       ]
@@ -86,6 +94,19 @@ export default defineEventHandler(async (event) => {
     // Insert after photos if provided
     if (body.photos && body.photos.length > 0) {
       for (const photo of body.photos) {
+        // Extract path from full URL if needed
+        // If photo is full URL (https://...), extract only the path part
+        let photoPath = photo
+        try {
+          const url = new URL(photo)
+          photoPath = url.pathname // Get only the path part (e.g., /16/after/image.jpg)
+          console.log('Extracted path from URL:', photo, '->', photoPath)
+        } catch {
+          // If not a valid URL, assume it's already a path
+          console.log('Using as-is (not a URL):', photo)
+          photoPath = photo
+        }
+        
         await query(
           `INSERT INTO cm_evidence_images (
             cm_history_id,
@@ -94,7 +115,7 @@ export default defineEventHandler(async (event) => {
             caption,
             created_at
           ) VALUES (?, 'after', ?, 'รูปหลังซ่อม', NOW())`,
-          [id, photo]
+          [id, photoPath]
         )
       }
     }

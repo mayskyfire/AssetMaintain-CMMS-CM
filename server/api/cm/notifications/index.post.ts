@@ -28,7 +28,8 @@ export default defineEventHandler(async (event) => {
     const notificationId = generateNotificationId()
 
     // Insert notification
-    const [result] = await query<any>(
+    const pool = getDbPool()
+    const [result] = await pool.execute(
       `INSERT INTO cm_history (
         notification_id,
         asset_id,
@@ -52,12 +53,30 @@ export default defineEventHandler(async (event) => {
       ]
     )
 
-    const insertId = result.insertId
+    // Get insertId from result (ResultSetHeader)
+    const insertId = (result as any).insertId
+    
+    if (!insertId) {
+      throw createError({
+        statusCode: 500,
+        message: 'Failed to create notification - no insert ID'
+      })
+    }
 
     // Insert evidence images if provided
-    if (body.evidence_images && body.evidence_images.length > 0) {
-      for (const image of body.evidence_images) {
-        await query(
+    if (body.photos && body.photos.length > 0) {
+      for (const photoUrl of body.photos) {
+        // Extract path from full URL if needed
+        let photoPath = photoUrl
+        try {
+          const url = new URL(photoUrl)
+          photoPath = url.pathname // Get only the path part
+        } catch {
+          // If not a valid URL, assume it's already a path
+          photoPath = photoUrl
+        }
+        
+        await pool.execute(
           `INSERT INTO cm_evidence_images (
             cm_history_id,
             image_type,
@@ -65,8 +84,8 @@ export default defineEventHandler(async (event) => {
             caption,
             uploaded_by,
             created_at
-          ) VALUES (?, 'evidence', ?, ?, ?, NOW())`,
-          [insertId, image.url, image.caption || null, requesterId]
+          ) VALUES (?, 'evidence', ?, NULL, ?, NOW())`,
+          [insertId, photoPath, requesterId]
         )
       }
     }

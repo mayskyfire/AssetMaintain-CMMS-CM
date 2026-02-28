@@ -71,6 +71,28 @@
 </template>
 
 <script setup lang="ts">
+// Redirect logged-in users before page renders
+definePageMeta({
+  middleware: [
+    function (to) {
+      if (import.meta.server) return
+      const { isAuthenticated, getUserInfo } = useAuth()
+      if (isAuthenticated()) {
+        const user = getUserInfo()
+        if (user) {
+          switch (user.role) {
+            case 'requester': return window.location.href = '/requester/'
+            case 'technician': return window.location.href = '/technician/jobs'
+            case 'planner':
+            case 'engineer': return window.location.href = '/supervisor/inbox'
+            default: return window.location.href = '/requester/'
+          }
+        }
+      }
+    }
+  ]
+})
+
 const router = useRouter()
 const { login } = useAuth()
 const { success: showSuccess, error: showError } = useToast()
