@@ -30,13 +30,17 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/public ./public
 
-# Expose port
-EXPOSE 3000
-
 # Set environment to production
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# Start the application
-CMD ["node", ".output/server/index.mjs"]
+# Node.js performance tuning
+# Adjust max-old-space-size based on available memory (4GB = 3072MB for app)
+ENV NODE_OPTIONS="--max-old-space-size=3072"
+
+# Expose port
+EXPOSE 3000
+
+# Start the application with cluster mode for better CPU utilization
+CMD ["node", "server/cluster.mjs"]
