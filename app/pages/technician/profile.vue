@@ -125,7 +125,7 @@
           size="large"
           full-width
           icon="lucide:log-out"
-          @click="handleLogout"
+          @click="showLogoutModal = true"
         >
           ออกจากระบบ
         </UiButton>
@@ -135,6 +135,14 @@
     </div>
 
     <LayoutBottomNav role="technician" />
+
+    <!-- Logout Confirmation Modal -->
+    <UiLogoutConfirmModal
+      :show="showLogoutModal"
+      :loading="loggingOut"
+      @cancel="showLogoutModal = false"
+      @confirm="handleLogout"
+    />
   </div>
 </template>
 
@@ -144,6 +152,9 @@ const { user, logout, loadUserFromStorage } = useAuth()
 const { getStats } = useTechnicianService()
 const { stats, loading } = useTechnicianState()
 const { success } = useToast()
+
+const showLogoutModal = ref(false)
+const loggingOut = ref(false)
 
 // Load stats on mount
 onMounted(async () => {
@@ -157,13 +168,17 @@ onMounted(async () => {
 
 // Handle logout
 const handleLogout = async () => {
+  loggingOut.value = true
   try {
     await logout()
-    success('ออกจากระบบสำเร็จ')
+    showLogoutModal.value = false
     router.push('/')
   } catch (error) {
     console.error('Logout failed:', error)
+    showLogoutModal.value = false
     router.push('/')
+  } finally {
+    loggingOut.value = false
   }
 }
 </script>

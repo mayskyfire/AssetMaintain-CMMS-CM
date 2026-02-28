@@ -89,7 +89,7 @@
         size="large"
         full-width
         icon="lucide:log-out"
-        @click="handleLogout"
+        @click="showLogoutModal = true"
       >
         ออกจากระบบ
       </UiButton>
@@ -98,6 +98,14 @@
     </div>
 
     <LayoutBottomNav role="requester" />
+
+    <!-- Logout Confirmation Modal -->
+    <UiLogoutConfirmModal
+      :show="showLogoutModal"
+      :loading="loggingOut"
+      @cancel="showLogoutModal = false"
+      @confirm="handleLogout"
+    />
   </div>
 </template>
 
@@ -110,6 +118,8 @@ const { getQueue } = useOfflineStorage()
 const { clearAllState } = useAppState()
 
 const queueCount = ref(0)
+const showLogoutModal = ref(false)
+const loggingOut = ref(false)
 
 // Load data on mount
 onMounted(async () => {
@@ -155,13 +165,18 @@ const getRoleLabel = (role?: string) => {
 }
 
 const handleLogout = async () => {
+  loggingOut.value = true
   try {
     await logout()
     clearAllState()
+    showLogoutModal.value = false
     router.push('/')
   } catch (error) {
     console.error('Logout failed:', error)
+    showLogoutModal.value = false
     router.push('/')
+  } finally {
+    loggingOut.value = false
   }
 }
 </script>
