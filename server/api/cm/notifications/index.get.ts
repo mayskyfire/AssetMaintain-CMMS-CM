@@ -2,6 +2,27 @@ import type { NotificationListRequest, NotificationListResponse } from '~/types/
 
 export default defineEventHandler(async (event) => {
   try {
+    // Get auth token and verify
+    const authHeader = getHeader(event, 'authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized',
+        message: 'Missing or invalid authorization token'
+      })
+    }
+
+    const token = authHeader.substring(7)
+    const payload = verifyToken(token)
+
+    if (!payload) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized',
+        message: 'Invalid or expired token'
+      })
+    }
+
     // Get query parameters
     const queryParams = getQuery(event) as NotificationListRequest
     const page = parseInt(queryParams.page as string) || 1
@@ -10,9 +31,10 @@ export default defineEventHandler(async (event) => {
     const status = queryParams.status
     const priority = queryParams.priority
 
-    // Build WHERE clause
-    const whereConditions: string[] = []
-    const params: any[] = []
+    
+    // Build WHERE clause - ALWAYS filter by requester_id
+    const whereConditions: string[] = ['cm.requester_id = ?']
+    const params: any[] = [payload.userId]
 
     if (status) {
       whereConditions.push('cm.status = ?')
@@ -24,9 +46,7 @@ export default defineEventHandler(async (event) => {
       params.push(priority)
     }
 
-    const whereClause = whereConditions.length > 0 
-      ? 'WHERE ' + whereConditions.join(' AND ')
-      : ''
+    const whereClause = 'WHERE ' + whereConditions.join(' AND ')
 
     // Query notifications from database
     const notifications = await query<{
