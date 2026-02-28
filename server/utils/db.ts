@@ -8,11 +8,11 @@ export function getDbPool(): mysql.Pool {
     const config = useRuntimeConfig()
     
     pool = mysql.createPool({
-      host: config.dbHost || process.env.DB_HOST,
-      port: parseInt(config.dbPort || process.env.DB_PORT || '3306'),
-      user: config.dbUser || process.env.DB_USER,
-      password: config.dbPassword || process.env.DB_PASSWORD,
-      database: config.dbName || process.env.DB_NAME,
+      host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306'),
+      user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+      password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+      database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'pm_cm_air_db',
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
