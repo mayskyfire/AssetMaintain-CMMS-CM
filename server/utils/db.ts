@@ -53,7 +53,10 @@ export function getDbPool(): mysql.Pool {
 
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   const pool = getDbPool()
-  const [rows] = await pool.execute(sql, params)
+  // Use pool.query() instead of pool.execute() for MySQL 9.4 compatibility
+  // pool.execute() uses prepared statements which can cause
+  // 'Incorrect arguments to mysqld_stmt_execute' with dynamic SQL
+  const [rows] = await pool.query(sql, params)
   return rows as T[]
 }
 

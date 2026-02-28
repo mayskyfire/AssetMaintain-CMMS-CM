@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
 
     // Insert notification
     const pool = getDbPool()
-    const [result] = await pool.execute(
+    const [result] = await pool.query(
       `INSERT INTO cm_history (
         notification_id,
         asset_id,
@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
           photoPath = photoUrl
         }
         
-        await pool.execute(
+        await pool.query(
           `INSERT INTO cm_evidence_images (
             cm_history_id,
             image_type,
