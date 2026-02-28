@@ -1,4 +1,4 @@
-# AssetMaintain CMMS CM - Nuxt 4 Application
+# AssetMaintain CMMS - CM v1.0 Nuxt 4 Application
 
 > Corrective Maintenance Mobile Application สำหรับระบบ CMMS (Computerized Maintenance Management System)
 
