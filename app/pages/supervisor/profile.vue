@@ -148,7 +148,6 @@ const handleLogout = async () => {
   loggingOut.value = true
   try {
     await logout()
-    success('ออกจากระบบสำเร็จ')
     showLogoutModal.value = false
     router.push('/')
   } catch (error) {
