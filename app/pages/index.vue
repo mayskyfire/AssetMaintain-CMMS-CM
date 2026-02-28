@@ -14,40 +14,53 @@
       <UiCard class-name="p-6">
         <h2 class="text-[20px] font-bold text-slate-800 mb-6 text-center">เข้าสู่ระบบ</h2>
 
+        <!-- Inline Error Banner -->
+        <div
+          v-if="errorMessage"
+          class="mb-4 px-4 py-3 bg-[#ff3b30]/10 border border-[#ff3b30]/20 rounded-[10px] text-[13px] text-[#ff3b30] font-medium"
+        >
+          {{ errorMessage }}
+        </div>
+
         <div class="space-y-4">
+          <!-- Email -->
           <UiInput
             v-model="username"
-            label="ชื่อผู้ใช้"
-            placeholder="กรอกชื่อผู้ใช้"
+            label="อีเมล"
+            placeholder="กรอกอีเมล"
             icon="lucide:user"
+            :error="fieldErrors.username"
+            @keyup.enter="handleLogin"
           />
 
-          <UiInput
-            v-model="password"
-            label="รหัสผ่าน"
-            placeholder="กรอกรหัสผ่าน"
-            type="password"
-            icon="lucide:lock"
-          />
-
-          <!-- Role Selection -->
+          <!-- Password with toggle -->
           <div class="space-y-2">
-            <label class="block text-[13px] font-bold text-slate-800">บทบาท</label>
-            <div class="grid grid-cols-3 gap-2">
-              <button
-                v-for="roleOption in roles"
-                :key="roleOption.value"
-                @click="role = roleOption.value"
+            <label class="block text-[13px] font-bold text-slate-800">รหัสผ่าน</label>
+            <div class="relative">
+              <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <Icon name="lucide:lock" size="20" />
+              </div>
+              <input
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="กรอกรหัสผ่าน"
                 :class="[
-                  'px-3 py-2 rounded-[8px] text-[12px] font-bold transition-all',
-                  role === roleOption.value
-                    ? 'bg-[#00a6ff] text-white'
-                    : 'bg-slate-100 text-slate-500'
+                  'input pl-12 pr-12',
+                  fieldErrors.password ? 'border-[#ff3b30] focus:border-[#ff3b30]' : ''
                 ]"
+                @keyup.enter="handleLogin"
+              />
+              <button
+                type="button"
+                @click="showPassword = !showPassword"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
               >
-                {{ roleOption.label }}
+                <Icon :name="showPassword ? 'lucide:eye-off' : 'lucide:eye'" size="20" />
               </button>
             </div>
+            <p v-if="fieldErrors.password" class="text-[12px] text-[#ff3b30]">
+              {{ fieldErrors.password }}
+            </p>
           </div>
 
           <UiButton
@@ -74,18 +87,18 @@
 // Redirect logged-in users before page renders
 definePageMeta({
   middleware: [
-    function (to) {
+    function () {
       if (import.meta.server) return
       const { isAuthenticated, getUserInfo } = useAuth()
       if (isAuthenticated()) {
         const user = getUserInfo()
         if (user) {
           switch (user.role) {
-            case 'requester': return window.location.href = '/requester/'
-            case 'technician': return window.location.href = '/technician/jobs'
+            case 'requester': return navigateTo('/requester/', { replace: true })
+            case 'technician': return navigateTo('/technician/jobs', { replace: true })
             case 'planner':
-            case 'engineer': return window.location.href = '/supervisor/inbox'
-            default: return window.location.href = '/requester/'
+            case 'engineer': return navigateTo('/supervisor/inbox', { replace: true })
+            default: return navigateTo('/requester/', { replace: true })
           }
         }
       }
@@ -95,23 +108,36 @@ definePageMeta({
 
 const router = useRouter()
 const { login } = useAuth()
-const { success: showSuccess, error: showError } = useToast()
 
 const username = ref('')
 const password = ref('')
-const role = ref<'requester' | 'supervisor' | 'technician'>('requester')
 const loading = ref(false)
+const showPassword = ref(false)
+const errorMessage = ref('')
+const fieldErrors = reactive({ username: '', password: '' })
 
-const roles = [
-  { value: 'requester', label: 'ผู้แจ้งซ่อม' },
-  { value: 'supervisor', label: 'หัวหน้างาน' },
-  { value: 'technician', label: 'ช่างซ่อม' }
-]
+const clearErrors = () => {
+  errorMessage.value = ''
+  fieldErrors.username = ''
+  fieldErrors.password = ''
+}
 
 const handleLogin = async () => {
-  // Validation
-  if (!username.value || !password.value) {
-    showError('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน')
+  clearErrors()
+
+  // Field validation
+  if (!username.value && !password.value) {
+    errorMessage.value = 'กรุณากรอกอีเมลและรหัสผ่าน'
+    fieldErrors.username = 'กรุณากรอกอีเมล'
+    fieldErrors.password = 'กรุณากรอกรหัสผ่าน'
+    return
+  }
+  if (!username.value) {
+    fieldErrors.username = 'กรุณากรอกอีเมล'
+    return
+  }
+  if (!password.value) {
+    fieldErrors.password = 'กรุณากรอกรหัสผ่าน'
     return
   }
 
@@ -122,13 +148,9 @@ const handleLogin = async () => {
       email: username.value,
       password: password.value
     })
-    
+
     if (response.user) {
-      showSuccess('เข้าสู่ระบบสำเร็จ')
-
-      // Navigate based on user role from API response
       const userRole = response.user.role
-
       switch (userRole) {
         case 'requester':
           router.push('/requester/')
@@ -145,7 +167,7 @@ const handleLogin = async () => {
       }
     }
   } catch (error: any) {
-    showError(error.message || 'เข้าสู่ระบบไม่สำเร็จ')
+    errorMessage.value = error.message || 'เข้าสู่ระบบไม่สำเร็จ'
   } finally {
     loading.value = false
   }

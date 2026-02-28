@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         statusMessage: 'Bad Request',
-        message: 'Email and password are required'
+        message: 'กรุณากรอกอีเมลและรหัสผ่าน'
       })
     }
 
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 401,
         statusMessage: 'Unauthorized',
-        message: 'Invalid email'
+        message: 'ไม่พบผู้ใช้งานหรืออีเมลไม่ถูกต้อง'
       })
     }
 
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 403,
         statusMessage: 'Forbidden',
-        message: 'User account is inactive'
+        message: 'บัญชีผู้ใช้ถูกระงับการใช้งาน'
       })
     }
 
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 401,
         statusMessage: 'Unauthorized',
-        message: 'Invalid password'
+        message: 'รหัสผ่านไม่ถูกต้อง'
       })
     }
 
@@ -83,7 +83,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       data: response,
-      message: 'Login successful'
+      message: 'เข้าสู่ระบบสำเร็จ'
     }
   } catch (error: any) {
     // Handle errors
@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal Server Error',
-      message: error.message || 'An error occurred during login'
+      message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ'
     })
   }
 })
