@@ -140,13 +140,14 @@
 
 <script setup lang="ts">
 const router = useRouter()
-const { user, logout } = useAuth()
+const { user, logout, loadUserFromStorage } = useAuth()
 const { getStats } = useTechnicianService()
 const { stats, loading } = useTechnicianState()
 const { success } = useToast()
 
 // Load stats on mount
 onMounted(async () => {
+  loadUserFromStorage()
   try {
     await getStats()
   } catch (error) {

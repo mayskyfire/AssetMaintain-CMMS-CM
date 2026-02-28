@@ -134,9 +134,24 @@
 <script setup lang="ts">
 const router = useRouter()
 const { isOnline } = useNetworkStatus()
-const { user } = useAuth()
+const { user, loadUserFromStorage } = useAuth()
 const { getNotifications } = useNotificationService()
 const { notifications, loading } = useNotificationState()
+
+// Load data on mount
+onMounted(async () => {
+  // Ensure user state is loaded from localStorage after hydration
+  loadUserFromStorage()
+  
+  try {
+    await getNotifications({
+      page: 1,
+      limit: 10
+    })
+  } catch (error) {
+    console.error('Failed to load notifications:', error)
+  }
+})
 
 // Stats
 const stats = computed(() => {

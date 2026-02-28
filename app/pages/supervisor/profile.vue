@@ -117,13 +117,14 @@
 
 <script setup lang="ts">
 const router = useRouter()
-const { user, logout } = useAuth()
+const { user, logout, loadUserFromStorage } = useAuth()
 const { getStats } = useSupervisorService()
 const { stats, loading } = useSupervisorState()
 const { success } = useToast()
 
 // Load stats on mount
 onMounted(async () => {
+  loadUserFromStorage()
   try {
     await getStats()
   } catch (error) {
