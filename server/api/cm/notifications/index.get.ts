@@ -11,18 +11,22 @@ export default defineEventHandler(async (event) => {
     const priority = queryParams.priority
 
     // Build WHERE clause
-    let whereClause = '1=1'
+    const whereConditions: string[] = []
     const params: any[] = []
 
     if (status) {
-      whereClause += ' AND cm.status = ?'
+      whereConditions.push('cm.status = ?')
       params.push(status)
     }
 
     if (priority) {
-      whereClause += ' AND cm.priority = ?'
+      whereConditions.push('cm.priority = ?')
       params.push(priority)
     }
+
+    const whereClause = whereConditions.length > 0 
+      ? 'WHERE ' + whereConditions.join(' AND ')
+      : ''
 
     // Query notifications from database
     const notifications = await query<{
@@ -66,7 +70,7 @@ export default defineEventHandler(async (event) => {
        INNER JOIN assets a ON cm.asset_id = a.id
        INNER JOIN users u1 ON cm.requester_id = u1.id
        LEFT JOIN users u2 ON cm.technician_id = u2.id
-       WHERE ${whereClause}
+       ${whereClause}
        ORDER BY cm.reported_date DESC
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
@@ -74,7 +78,7 @@ export default defineEventHandler(async (event) => {
 
     // Get total count
     const [countResult] = await query<{ total: number }>(
-      `SELECT COUNT(*) as total FROM cm_history cm WHERE ${whereClause}`,
+      `SELECT COUNT(*) as total FROM cm_history cm ${whereClause}`,
       params
     )
 

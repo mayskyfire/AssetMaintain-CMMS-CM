@@ -114,9 +114,9 @@ export default defineEventHandler(async (event) => {
 
     // Add timeline event
     await query(
-      `INSERT INTO cm_timeline (cm_history_id, event, user, status, time)
-       VALUES (?, ?, ?, ?, NOW())`,
-      [jobId, `บันทึกอะไหล่ ${insertedParts.length} รายการ`, userName, null]
+      `INSERT INTO cm_timeline (cm_history_id, event, user, time)
+       VALUES (?, ?, ?, NOW())`,
+      [jobId, `บันทึกอะไหล่ ${insertedParts.length} รายการ`, userName]
     )
 
     return {

@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
       [
         notificationId,
         body.asset_id,
-        body.problem_category || null,
+        body.problem_category || '',
         body.problem_description,
         requesterId,
         body.priority || 'medium'
@@ -81,10 +81,9 @@ export default defineEventHandler(async (event) => {
             cm_history_id,
             image_type,
             url,
-            caption,
             uploaded_by,
             created_at
-          ) VALUES (?, 'evidence', ?, NULL, ?, NOW())`,
+          ) VALUES (?, 'evidence', ?, ?, NOW())`,
           [insertId, photoPath, requesterId]
         )
       }
