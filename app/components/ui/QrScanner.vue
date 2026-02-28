@@ -160,7 +160,6 @@ const startScanner = async () => {
       },
       (errorMessage) => {
         // Error callback (scanning errors, not critical)
-        // console.log('Scan error:', errorMessage)
       }
     )
 

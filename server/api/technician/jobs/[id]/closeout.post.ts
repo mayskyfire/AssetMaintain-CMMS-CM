@@ -100,10 +100,8 @@ export default defineEventHandler(async (event) => {
         try {
           const url = new URL(photo)
           photoPath = url.pathname // Get only the path part (e.g., /16/after/image.jpg)
-          console.log('Extracted path from URL:', photo, '->', photoPath)
         } catch {
           // If not a valid URL, assume it's already a path
-          console.log('Using as-is (not a URL):', photo)
           photoPath = photo
         }
         

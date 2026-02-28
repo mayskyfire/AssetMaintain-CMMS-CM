@@ -58,14 +58,10 @@ export function useApi() {
     }
 
     try {
-      console.log('[useApi] Fetching:', url)
-      
       const response = await fetch(url, {
         ...fetchOptions,
         headers
       })
-
-      console.log('[useApi] Response status:', response.status)
 
       const data = await response.json()
 
