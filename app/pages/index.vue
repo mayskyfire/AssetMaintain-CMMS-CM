@@ -4,7 +4,7 @@
       <!-- Logo -->
       <div class="text-center">
         <div class="bg-white rounded-[20px] w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-lg">
-          <span class="text-[32px]">🔧</span>
+          <img src="/favicon-96x96.png" class="w-100 h-100">
         </div>
         <h1 class="text-[28px] font-bold text-white mb-2">AssetMaintain CM</h1>
         <p class="text-[14px] text-white/80">Corrective Maintenance System</p>
@@ -94,11 +94,11 @@ definePageMeta({
         const user = getUserInfo()
         if (user) {
           switch (user.role) {
-            case 'requester': return navigateTo('/requester/', { replace: true })
-            case 'technician': return navigateTo('/technician/jobs', { replace: true })
+            case 'requester': return window.location.href = '/requester/'
+            case 'technician': return window.location.href = '/technician/jobs'
             case 'planner':
-            case 'engineer': return navigateTo('/supervisor/inbox', { replace: true })
-            default: return navigateTo('/requester/', { replace: true })
+            case 'engineer': return window.location.href = '/supervisor/inbox'
+            default: return window.location.href = '/requester/'
           }
         }
       }
