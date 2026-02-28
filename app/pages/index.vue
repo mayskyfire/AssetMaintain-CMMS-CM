@@ -77,7 +77,7 @@
       </UiCard>
 
       <p class="text-center text-[12px] text-white/60">
-        AssetMaintain CMMS - CM v1.0 • PWA Offline-First
+        AssetMaintain CMMS - CM v1.0
       </p>
     </div>
   </div>
