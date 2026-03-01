@@ -46,38 +46,38 @@
       <div class="grid grid-cols-3 gap-3">
         <UiCard 
           :clickable="true"
-          class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
+          class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
           @click="router.push('/technician/jobs?status=assigned')"
         >
-          <div class="flex items-center gap-2 mb-2">
-            <Icon name="lucide:clock" size="16" class="text-[#fe9a00]" />
-            <span class="text-[11px] text-slate-500">รอรับงาน</span>
+          <div class="flex items-center gap-2 mb-2 min-h-[36px]">
+            <Icon name="lucide:clock" size="16" class="text-[#fe9a00] shrink-0" />
+            <span class="text-[11px] text-slate-500 leading-tight">รอรับงาน</span>
           </div>
-          <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.assigned }}</p>
+          <p class="text-[24px] font-bold text-slate-800 text-center mt-auto">{{ stats.assigned }}</p>
         </UiCard>
 
         <UiCard 
           :clickable="true"
-          class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
+          class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
           @click="router.push('/technician/jobs?status=in_progress')"
         >
-          <div class="flex items-center gap-2 mb-2">
-            <Icon name="lucide:alert-circle" size="16" class="text-[#00a6ff]" />
-            <span class="text-[11px] text-slate-500">กำลังซ่อม</span>
+          <div class="flex items-center gap-2 mb-2 min-h-[36px]">
+            <Icon name="lucide:alert-circle" size="16" class="text-[#00a6ff] shrink-0" />
+            <span class="text-[11px] text-slate-500 leading-tight">กำลังซ่อม</span>
           </div>
-          <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.inProgress }}</p>
+          <p class="text-[24px] font-bold text-slate-800 text-center mt-auto">{{ stats.inProgress }}</p>
         </UiCard>
 
         <UiCard 
           :clickable="true"
-          class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
+          class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
           @click="router.push('/technician/jobs?status=completed')"
         >
-          <div class="flex items-center gap-2 mb-2">
-            <Icon name="lucide:check-circle" size="16" class="text-[#6dd400]" />
-            <span class="text-[11px] text-slate-500">เสร็จสิ้น</span>
+          <div class="flex items-center gap-2 mb-2 min-h-[36px]">
+            <Icon name="lucide:check-circle" size="16" class="text-[#6dd400] shrink-0" />
+            <span class="text-[11px] text-slate-500 leading-tight">เสร็จสิ้น</span>
           </div>
-          <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.completed }}</p>
+          <p class="text-[24px] font-bold text-slate-800 text-center mt-auto">{{ stats.completed }}</p>
         </UiCard>
       </div>
 

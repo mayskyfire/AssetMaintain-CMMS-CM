@@ -1,13 +1,38 @@
 export default defineEventHandler(async (event) => {
   try {
+    // Get authorization header
+    const authHeader = getRequestHeader(event, 'authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized',
+        message: 'Missing or invalid authorization header'
+      })
+    }
+
+    // Verify token
+    const token = authHeader.substring(7)
+    const payload = verifyToken(token)
+    
+    if (!payload) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized',
+        message: 'Invalid token'
+      })
+    }
+
+    const userId = payload.userId
+
     // Get query parameters
     const queryParams = getQuery(event)
     const page = parseInt(queryParams.page as string) || 1
     const limit = parseInt(queryParams.limit as string) || 50
     const offset = (page - 1) * limit
 
-    // Query all notifications (reported, assigned, in_progress)
-    // Exclude completed and cancelled
+    // Query notifications
+    // - reported: แสดงทั้งหมด (ยังไม่ได้มอบหมาย)
+    // - assigned, in_progress, completed: แสดงเฉพาะที่ supervisor คนนี้เป็นคนมอบหมาย
     const notifications = await query<{
       id: number
       notification_id: string
@@ -25,6 +50,7 @@ export default defineEventHandler(async (event) => {
       requester_name: string
       technician_id: number | null
       technician_name: string | null
+      supervisor_id: number | null
     }>(
       `SELECT 
         cm.id,
@@ -42,12 +68,16 @@ export default defineEventHandler(async (event) => {
         cm.requester_id,
         u1.full_name as requester_name,
         cm.technician_id,
-        u2.full_name as technician_name
+        u2.full_name as technician_name,
+        cm.supervisor_id
        FROM cm_history cm
        INNER JOIN assets a ON cm.asset_id = a.id
        INNER JOIN users u1 ON cm.requester_id = u1.id
        LEFT JOIN users u2 ON cm.technician_id = u2.id
-       WHERE cm.status IN ('reported', 'assigned', 'in_progress')
+       WHERE (
+         cm.status = 'reported' 
+         OR (cm.status IN ('assigned', 'in_progress', 'completed') AND cm.supervisor_id = ?)
+       )
        ORDER BY 
          CASE cm.priority
            WHEN 'critical' THEN 1
@@ -57,14 +87,18 @@ export default defineEventHandler(async (event) => {
          END,
          cm.reported_date ASC
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [userId, limit, offset]
     )
 
     // Get total count
     const [countResult] = await query<{ total: number }>(
       `SELECT COUNT(*) as total 
        FROM cm_history 
-       WHERE status IN ('reported', 'assigned', 'in_progress')`
+       WHERE (
+         status = 'reported' 
+         OR (status IN ('assigned', 'in_progress', 'completed') AND supervisor_id = ?)
+       )`,
+      [userId]
     )
 
     const total = countResult?.total || 0

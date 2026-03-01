@@ -22,7 +22,7 @@
         <div ref="filterContainer" class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           <button
             ref="filterAll"
-            @click="filterStatus = 'all'"
+            @click="() => { filterStatus = 'all'; scrollToActiveFilter() }"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
               filterStatus === 'all'
@@ -34,7 +34,7 @@
           </button>
           <button
             ref="filterReported"
-            @click="filterStatus = 'reported'"
+            @click="() => { filterStatus = 'reported'; scrollToActiveFilter() }"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
               filterStatus === 'reported'
@@ -46,11 +46,11 @@
           </button>
           <button
             ref="filterAssigned"
-            @click="filterStatus = 'assigned'"
+            @click="() => { filterStatus = 'assigned'; scrollToActiveFilter() }"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
               filterStatus === 'assigned'
-                ? 'bg-[#00a6ff]/10 text-[#00a6ff] border border-[#00a6ff]'
+                ? 'bg-slate-100 text-slate-700 border border-slate-300'
                 : 'bg-white text-slate-500 border border-slate-200'
             ]"
           >
@@ -58,7 +58,7 @@
           </button>
           <button
             ref="filterInProgress"
-            @click="filterStatus = 'in_progress'"
+            @click="() => { filterStatus = 'in_progress'; scrollToActiveFilter() }"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
               filterStatus === 'in_progress'
@@ -70,7 +70,7 @@
           </button>
           <button
             ref="filterCompleted"
-            @click="filterStatus = 'completed'"
+            @click="() => { filterStatus = 'completed'; scrollToActiveFilter() }"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
               filterStatus === 'completed'
@@ -264,7 +264,7 @@ const getStatusVariant = (status: string) => {
   const variants: Record<string, any> = {
     reported: 'warning',
     pending: 'warning',
-    assigned: 'primary',
+    assigned: 'secondary',
     in_progress: 'primary',
     completed: 'success'
   }

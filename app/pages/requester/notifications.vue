@@ -18,7 +18,7 @@
       <div ref="filterContainer" class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
         <button
           ref="filterAll"
-          @click="filterStatus = 'all'"
+          @click="() => { filterStatus = 'all'; scrollToActiveFilter() }"
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
             filterStatus === 'all'
@@ -30,7 +30,7 @@
         </button>
         <button
           ref="filterPending"
-          @click="filterStatus = 'pending'"
+          @click="() => { filterStatus = 'pending'; scrollToActiveFilter() }"
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
             filterStatus === 'pending'
@@ -42,7 +42,7 @@
         </button>
         <button
           ref="filterInProgress"
-          @click="filterStatus = 'in_progress'"
+          @click="() => { filterStatus = 'in_progress'; scrollToActiveFilter() }"
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
             filterStatus === 'in_progress'
@@ -54,7 +54,7 @@
         </button>
         <button
           ref="filterCompleted"
-          @click="filterStatus = 'completed'"
+          @click="() => { filterStatus = 'completed'; scrollToActiveFilter() }"
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
             filterStatus === 'completed'

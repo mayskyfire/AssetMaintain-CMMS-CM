@@ -43,41 +43,53 @@
       </div>
 
       <!-- Stats -->
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-4 gap-2">
         <UiCard 
           :clickable="true"
-          class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
+          class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
           @click="router.push('/supervisor/inbox?status=reported')"
         >
-          <div class="flex items-center gap-2 mb-2">
-            <Icon name="lucide:clock" size="16" class="text-[#fe9a00]" />
-            <span class="text-[11px] text-slate-500">รอมอบหมาย</span>
+          <div class="flex items-center gap-1 mb-2 min-h-[32px]">
+            <Icon name="lucide:clock" size="14" class="text-[#fe9a00] shrink-0" />
+            <span class="text-[10px] text-slate-500 leading-tight">รอมอบหมาย</span>
           </div>
-          <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.pending }}</p>
+          <p class="text-[20px] font-bold text-slate-800 text-center mt-auto">{{ stats.pending }}</p>
         </UiCard>
 
         <UiCard 
           :clickable="true"
-          class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
+          class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
           @click="router.push('/supervisor/inbox?status=assigned')"
         >
-          <div class="flex items-center gap-2 mb-2">
-            <Icon name="lucide:alert-circle" size="16" class="text-[#00a6ff]" />
-            <span class="text-[11px] text-slate-500">มอบหมายแล้ว</span>
+          <div class="flex items-center gap-1 mb-2 min-h-[32px]">
+            <Icon name="lucide:user-check" size="14" class="text-slate-600 shrink-0" />
+            <span class="text-[10px] text-slate-500 leading-tight">มอบหมายแล้ว</span>
           </div>
-          <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.assigned }}</p>
+          <p class="text-[20px] font-bold text-slate-800 text-center mt-auto">{{ stats.assigned }}</p>
         </UiCard>
 
         <UiCard 
           :clickable="true"
-          class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
+          class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+          @click="router.push('/supervisor/inbox?status=in_progress')"
+        >
+          <div class="flex items-center gap-1 mb-2 min-h-[32px]">
+            <Icon name="lucide:alert-circle" size="14" class="text-[#00a6ff] shrink-0" />
+            <span class="text-[10px] text-slate-500 leading-tight">กำลังซ่อม</span>
+          </div>
+          <p class="text-[20px] font-bold text-slate-800 text-center mt-auto">{{ stats.inProgress }}</p>
+        </UiCard>
+
+        <UiCard 
+          :clickable="true"
+          class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
           @click="router.push('/supervisor/inbox?status=completed')"
         >
-          <div class="flex items-center gap-2 mb-2">
-            <Icon name="lucide:check-circle" size="16" class="text-[#6dd400]" />
-            <span class="text-[11px] text-slate-500">เสร็จสิ้น</span>
+          <div class="flex items-center gap-1 mb-2 min-h-[32px]">
+            <Icon name="lucide:check-circle" size="14" class="text-[#6dd400] shrink-0" />
+            <span class="text-[10px] text-slate-500 leading-tight">เสร็จสิ้น</span>
           </div>
-          <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.completed }}</p>
+          <p class="text-[20px] font-bold text-slate-800 text-center mt-auto">{{ stats.completed }}</p>
         </UiCard>
       </div>
 
@@ -166,14 +178,15 @@ onMounted(async () => {
 // Stats
 const stats = computed(() => {
   if (!inbox.value || !Array.isArray(inbox.value)) {
-    return { pending: 0, assigned: 0, completed: 0 }
+    return { pending: 0, assigned: 0, inProgress: 0, completed: 0 }
   }
   
   const pending = inbox.value.filter(j => j.status === 'reported' || j.status === 'pending').length
-  const assigned = inbox.value.filter(j => j.status === 'assigned' || j.status === 'in_progress').length
+  const assigned = inbox.value.filter(j => j.status === 'assigned').length
+  const inProgress = inbox.value.filter(j => j.status === 'in_progress').length
   const completed = inbox.value.filter(j => j.status === 'completed').length
 
-  return { pending, assigned, completed }
+  return { pending, assigned, inProgress, completed }
 })
 
 // Recent jobs (latest 3)
@@ -199,7 +212,7 @@ const getStatusVariant = (status: string) => {
   const variants: Record<string, any> = {
     reported: 'warning',
     pending: 'warning',
-    assigned: 'primary',
+    assigned: 'secondary',
     in_progress: 'primary',
     completed: 'success'
   }
