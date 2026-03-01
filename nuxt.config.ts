@@ -21,7 +21,7 @@ export default defineNuxtConfig({
     // Public keys (exposed to client)
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || '/api',
-      appName: 'AssetMaintain CM',
+      appName: 'AssetMaintain CMMS - CM',
       s3Url: process.env.S3_URL || 'https://railway-upload-api-service-production.up.railway.app'
     }
   },
@@ -37,7 +37,7 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     strategies: 'generateSW',
     manifest: {
-      name: 'AssetMaintain CM - ระบบแจ้งซ่อมบำรุง',
+      name: 'AssetMaintain CMMS - CM ระบบแจ้งซ่อมบำรุง',
       short_name: 'CM Maintain',
       description: 'ระบบแจ้งซ่อมบำรุงสำหรับช่างหน้างาน',
       start_url: '/',

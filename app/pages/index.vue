@@ -6,7 +6,7 @@
         <div class="bg-white rounded-[20px] w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-lg">
           <img src="/favicon-96x96.png" class="w-100 h-100">
         </div>
-        <h1 class="text-[28px] font-bold text-white mb-2">AssetMaintain CM</h1>
+        <h1 class="text-[28px] font-bold text-white mb-2">AssetMaintain CMMS<br />CM</h1>
         <p class="text-[14px] text-white/80">Corrective Maintenance System</p>
       </div>
 

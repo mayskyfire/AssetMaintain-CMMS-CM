@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-slate-50">
     <UiOfflineBanner :is-online="isOnline" />
-    <LayoutMobileHeader title="AssetMaintain CM" />
+    <LayoutMobileHeader title="AssetMaintain CMMS - CM" />
 
     <div class="p-4 space-y-6 pb-24">
       <!-- Welcome Section -->
