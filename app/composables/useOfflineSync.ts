@@ -3,17 +3,119 @@ import type { OfflineQueueItem } from './useOfflineStorage'
 export function useOfflineSync() {
   const { getQueueByStatus, updateQueueItemStatus, removeFromQueue, getQueueCount } = useOfflineStorage()
   const { success: showSuccess, error: showError } = useToast()
+  const { post } = useApi()
 
   const isSyncing = ref(false)
   const pendingCount = ref(0)
 
-  // Simulated API call — replace with real API in production
+  // Route each queue item to its real API endpoint
   async function sendToServer(item: OfflineQueueItem): Promise<boolean> {
-    // TODO: Replace with actual API calls per item.type
-    // e.g. if (item.type === 'notification') await $fetch('/api/notifications', { method: 'POST', body: item.data })
-    await new Promise(resolve => setTimeout(resolve, 800))
-    // Simulate 90% success rate
-    return Math.random() > 0.1
+    const { type, data, photos } = item
+
+    switch (type) {
+      case 'notification': {
+        // POST /api/cm/notifications
+        const body: Record<string, any> = {
+          asset_id: data.asset_id,
+          problem_description: data.problem_description,
+          priority: data.priority || 'medium',
+          problem_category: data.problem_category || '',
+          requester_id: data.requester_id
+        }
+        // Upload photos as base64 if present
+        if (photos && photos.length > 0) {
+          const uploadedUrls = await uploadPhotos(data.asset_id, 'evidence', photos)
+          body.photos = uploadedUrls
+        }
+        await post('cm/notifications', body)
+        return true
+      }
+
+      case 'closeout': {
+        // POST /api/technician/jobs/:id/closeout
+        const jobId = data.job_id || data.cm_history_id
+        if (!jobId) throw new Error('Missing job_id for closeout')
+
+        const body: Record<string, any> = {
+          root_cause: data.root_cause,
+          corrective_action: data.corrective_action,
+          preventive_recommendation: data.preventive_recommendation || '',
+          labor_hours: data.labor_hours || 0,
+          labor_cost: data.labor_cost || 0,
+          parts_cost: data.parts_cost || 0,
+          external_cost: data.external_cost || 0,
+          completion_date: data.completion_date || new Date().toISOString(),
+          completed_by: data.completed_by || 'ช่าง'
+        }
+        // Upload after-photos if present
+        if (photos && photos.length > 0) {
+          const uploadedUrls = await uploadPhotos(jobId, 'after', photos)
+          body.photos = uploadedUrls
+        }
+        await post(`technician/jobs/${jobId}/closeout`, body)
+        return true
+      }
+
+      case 'parts': {
+        // POST /api/technician/jobs/:id/parts
+        const jobId = data.job_id || data.cm_history_id
+        if (!jobId) throw new Error('Missing job_id for parts')
+
+        await post(`technician/jobs/${jobId}/parts`, {
+          parts: data.parts || []
+        })
+        return true
+      }
+
+      case 'evaluation': {
+        // POST /api/cm/notifications/:id/evaluate
+        const notificationId = data.notification_id || data.cm_history_id
+        if (!notificationId) throw new Error('Missing notification_id for evaluation')
+
+        await post(`cm/notifications/${notificationId}/evaluate`, {
+          satisfaction_rating: data.satisfaction_rating,
+          satisfaction_comment: data.satisfaction_comment || '',
+          evaluated_by: data.evaluated_by || 'ผู้ใช้งาน'
+        })
+        return true
+      }
+
+      case 'worklog': {
+        // Worklog is stored locally — no dedicated API endpoint yet
+        // Save as part of closeout data or skip
+        console.warn('[OfflineSync] worklog type has no dedicated API — skipping')
+        return true
+      }
+
+      default:
+        console.warn(`[OfflineSync] Unknown queue item type: ${type}`)
+        return false
+    }
+  }
+
+  // Upload base64 photos and return server URLs
+  async function uploadPhotos(entityId: number | string, imageType: 'evidence' | 'before' | 'after', base64Photos: string[]): Promise<string[]> {
+    const { uploadBase64Image } = useImageUpload()
+    const urls: string[] = []
+
+    for (let i = 0; i < base64Photos.length; i++) {
+      const photo = base64Photos[i]
+      if (!photo) continue
+      try {
+        const result = await uploadBase64Image(
+          Number(entityId),
+          imageType,
+          photo,
+          `${imageType}-offline-${Date.now()}-${i}.jpg`
+        )
+        urls.push(result.path)
+      } catch (err) {
+        console.error(`[OfflineSync] Failed to upload photo ${i}:`, err)
+        // Continue with remaining photos
+      }
+    }
+
+    return urls
   }
 
   async function refreshCount() {
@@ -44,7 +146,8 @@ export function useOfflineSync() {
             await updateQueueItemStatus(item.id, 'failed')
             failed++
           }
-        } catch {
+        } catch (err) {
+          console.error(`[OfflineSync] Failed to sync item ${item.id} (${item.type}):`, err)
           await updateQueueItemStatus(item.id, 'failed')
           failed++
         }

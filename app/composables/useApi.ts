@@ -1,12 +1,17 @@
-import type { ApiResponse, ApiError } from '~/types/api'
+import type { ApiResponse, ApiError } from '../../types/api'
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, any>
+  skipCache?: boolean // Skip cache for this request
+  cacheTTL?: number // Cache TTL in minutes (default: 5)
 }
 
 export function useApi() {
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBase || '/api'
+  const { isOnline } = useNetworkStatus()
+  const { setCache, getCache } = useOfflineStorage()
+  const { addToQueue } = useOfflineStorage()
 
   // Get auth token from localStorage (will be set after login)
   const getAuthToken = (): string | null => {
@@ -38,24 +43,87 @@ export function useApi() {
     return fullURL
   }
 
-  // Generic fetch wrapper
+  // Generate cache key from URL
+  const getCacheKey = (url: string, method: string): string => {
+    return `api:${method}:${url}`
+  }
+
+  // Generic fetch wrapper with offline support
   async function apiFetch<T = any>(
     endpoint: string,
     options: FetchOptions = {}
   ): Promise<ApiResponse<T>> {
-    const { params, ...fetchOptions } = options
+    const { params, skipCache = false, cacheTTL = 5, ...fetchOptions } = options
+    const method = (fetchOptions.method || 'GET').toUpperCase()
 
     const url = buildURL(endpoint, params)
+    const cacheKey = getCacheKey(url, method)
     const token = getAuthToken()
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...fetchOptions.headers
+      ...(fetchOptions.headers as Record<string, string> || {})
     }
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
+
+    // ===== OFFLINE HANDLING =====
+    
+    // For GET requests when offline, try to read from cache
+    if (!isOnline.value && method === 'GET') {
+      console.log('[useApi] Offline - attempting to read from cache:', cacheKey)
+      const cached = await getCache<ApiResponse<T>>(cacheKey)
+      if (cached) {
+        console.log('[useApi] Cache hit (offline):', cacheKey)
+        return cached
+      }
+      // No cache available
+      throw {
+        success: false,
+        error: 'Offline',
+        message: 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต และไม่มีข้อมูลแคชสำหรับคำขอนี้',
+        statusCode: 0
+      } as ApiError
+    }
+
+    // For write operations (POST/PUT/PATCH/DELETE) when offline, add to queue
+    if (!isOnline.value && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      console.log('[useApi] Offline - adding to queue:', method, endpoint)
+      
+      // Parse body if it's a string
+      let bodyData = fetchOptions.body
+      if (typeof bodyData === 'string') {
+        try {
+          bodyData = JSON.parse(bodyData)
+        } catch {
+          // Keep as string if not JSON
+        }
+      }
+
+      // Add to offline queue
+      await addToQueue({
+        type: 'notification', // Generic type - will be refined by useOfflineSync
+        title: `${method} ${endpoint}`,
+        description: `Offline ${method} request`,
+        data: {
+          endpoint,
+          method,
+          body: bodyData,
+          params
+        }
+      })
+
+      // Return optimistic response
+      return {
+        success: true,
+        data: null as T,
+        message: 'บันทึกลงคิวออฟไลน์แล้ว จะส่งข้อมูลเมื่อกลับมาออนไลน์'
+      }
+    }
+
+    // ===== ONLINE HANDLING =====
 
     try {
       const response = await fetch(url, {
@@ -75,43 +143,65 @@ export function useApi() {
         } as ApiError
       }
 
-      // Return the full response data (including pagination, etc.)
-      return {
+      // Build response
+      const apiResponse: ApiResponse<T> = {
         success: data.success !== undefined ? data.success : true,
         data: data.data,
         message: data.message,
         pagination: data.pagination,
         ...data // Include any other fields from the response
       }
+
+      // Cache successful GET responses
+      if (method === 'GET' && !skipCache && response.ok) {
+        console.log('[useApi] Caching response:', cacheKey, `(TTL: ${cacheTTL}m)`)
+        await setCache(cacheKey, apiResponse, cacheTTL)
+      }
+
+      return apiResponse
     } catch (error: any) {
       console.error('[useApi] Fetch error:', error)
+      
+      // If it's already an ApiError, throw it
       if (error.success === false) {
         throw error
       }
+
+      // Network error - try cache for GET requests
+      if (method === 'GET') {
+        console.log('[useApi] Network error - attempting cache fallback:', cacheKey)
+        const cached = await getCache<ApiResponse<T>>(cacheKey)
+        if (cached) {
+          console.log('[useApi] Cache hit (fallback):', cacheKey)
+          return cached
+        }
+      }
+
+      // No cache available or not a GET request
       throw {
         success: false,
         error: 'Network error',
-        message: error.message || 'Failed to connect to server',
+        message: error.message || 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้',
         statusCode: 0
       } as ApiError
     }
   }
 
   // HTTP Methods
-  const get = <T = any>(endpoint: string, params?: Record<string, any>) =>
-    apiFetch<T>(endpoint, { method: 'GET', params })
+  const get = <T = any>(endpoint: string, params?: Record<string, any>, options?: Partial<FetchOptions>) =>
+    apiFetch<T>(endpoint, { method: 'GET', params, ...options })
 
-  const post = <T = any>(endpoint: string, body?: any, params?: Record<string, any>) =>
-    apiFetch<T>(endpoint, { method: 'POST', body: JSON.stringify(body), params })
+  const post = <T = any>(endpoint: string, body?: any, params?: Record<string, any>, options?: Partial<FetchOptions>) =>
+    apiFetch<T>(endpoint, { method: 'POST', body: JSON.stringify(body), params, ...options })
 
-  const put = <T = any>(endpoint: string, body?: any, params?: Record<string, any>) =>
-    apiFetch<T>(endpoint, { method: 'PUT', body: JSON.stringify(body), params })
+  const put = <T = any>(endpoint: string, body?: any, params?: Record<string, any>, options?: Partial<FetchOptions>) =>
+    apiFetch<T>(endpoint, { method: 'PUT', body: JSON.stringify(body), params, ...options })
 
-  const patch = <T = any>(endpoint: string, body?: any, params?: Record<string, any>) =>
-    apiFetch<T>(endpoint, { method: 'PATCH', body: JSON.stringify(body), params })
+  const patch = <T = any>(endpoint: string, body?: any, params?: Record<string, any>, options?: Partial<FetchOptions>) =>
+    apiFetch<T>(endpoint, { method: 'PATCH', body: JSON.stringify(body), params, ...options })
 
-  const del = <T = any>(endpoint: string, params?: Record<string, any>) =>
-    apiFetch<T>(endpoint, { method: 'DELETE', params })
+  const del = <T = any>(endpoint: string, params?: Record<string, any>, options?: Partial<FetchOptions>) =>
+    apiFetch<T>(endpoint, { method: 'DELETE', params, ...options })
 
   return {
     get,

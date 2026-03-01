@@ -11,6 +11,7 @@
     <NuxtRouteAnnouncer />
     <NuxtPage :transition="{ name: 'page', mode: 'out-in' }" />
     <UiToastContainer />
+    <UiPwaInstallBanner />
   </div>
 </template>
 

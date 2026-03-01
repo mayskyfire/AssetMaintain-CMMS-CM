@@ -1,35 +1,24 @@
 export function usePwaInstall() {
-  const deferredPrompt = ref<any>(null)
-  const canInstall = ref(false)
-  const isInstalled = ref(false)
-
-  onMounted(() => {
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      isInstalled.value = true
-      return
-    }
-
-    // Listen for install prompt
-    window.addEventListener('beforeinstallprompt', (e: Event) => {
-      e.preventDefault()
-      deferredPrompt.value = e
-      canInstall.value = true
-    })
-
-    // Listen for successful install
-    window.addEventListener('appinstalled', () => {
-      canInstall.value = false
-      isInstalled.value = true
-      deferredPrompt.value = null
-    })
-  })
+  // These are set by the pwa-install.client.ts plugin at the earliest moment
+  const deferredPrompt = useState<any>('pwa-deferred-prompt', () => null)
+  const canInstall = useState<boolean>('pwa-can-install', () => false)
+  const isInstalled = useState<boolean>('pwa-is-installed', () => false)
 
   async function promptInstall(): Promise<boolean> {
-    if (!deferredPrompt.value) return false
+    if (!deferredPrompt.value) {
+      console.log('[PWA] No deferred prompt available (dev mode or browser does not support)')
+      // In dev mode, just simulate success
+      if (import.meta.dev) {
+        console.log('[PWA] Dev mode - simulating install')
+        return true
+      }
+      return false
+    }
 
+    console.log('[PWA] Showing install prompt')
     deferredPrompt.value.prompt()
     const { outcome } = await deferredPrompt.value.userChoice
+    console.log('[PWA] User choice:', outcome)
     deferredPrompt.value = null
     canInstall.value = false
 
