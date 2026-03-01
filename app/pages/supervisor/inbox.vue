@@ -19,8 +19,9 @@
         </div>
 
         <!-- Filter Tabs -->
-        <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+        <div ref="filterContainer" class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           <button
+            ref="filterAll"
             @click="filterStatus = 'all'"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
@@ -32,6 +33,7 @@
             ทั้งหมด ({{ totalCount }})
           </button>
           <button
+            ref="filterReported"
             @click="filterStatus = 'reported'"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
@@ -43,6 +45,7 @@
             รอมอบหมาย ({{ reportedCount }})
           </button>
           <button
+            ref="filterAssigned"
             @click="filterStatus = 'assigned'"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
@@ -54,6 +57,7 @@
             มอบหมายแล้ว ({{ assignedCount }})
           </button>
           <button
+            ref="filterInProgress"
             @click="filterStatus = 'in_progress'"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
@@ -65,6 +69,7 @@
             กำลังซ่อม ({{ inProgressCount }})
           </button>
           <button
+            ref="filterCompleted"
             @click="filterStatus = 'completed'"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
@@ -133,16 +138,64 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const route = useRoute()
 const { getInbox } = useSupervisorService()
 const { inbox, loading } = useSupervisorState()
 
 const searchQuery = ref('')
 const filterStatus = ref<'all' | 'reported' | 'assigned' | 'in_progress' | 'completed'>('all')
+const filterContainer = ref<HTMLElement | null>(null)
+const filterAll = ref<HTMLElement | null>(null)
+const filterReported = ref<HTMLElement | null>(null)
+const filterAssigned = ref<HTMLElement | null>(null)
+const filterInProgress = ref<HTMLElement | null>(null)
+const filterCompleted = ref<HTMLElement | null>(null)
+
+// Scroll to active filter button
+const scrollToActiveFilter = () => {
+  nextTick(() => {
+    let targetButton: HTMLElement | null = null
+    
+    if (filterStatus.value === 'reported') {
+      targetButton = filterReported.value
+    } else if (filterStatus.value === 'assigned') {
+      targetButton = filterAssigned.value
+    } else if (filterStatus.value === 'in_progress') {
+      targetButton = filterInProgress.value
+    } else if (filterStatus.value === 'completed') {
+      targetButton = filterCompleted.value
+    } else {
+      targetButton = filterAll.value
+    }
+    
+    if (targetButton && filterContainer.value) {
+      const container = filterContainer.value
+      const button = targetButton
+      
+      // Calculate scroll position to center the button
+      const scrollLeft = button.offsetLeft - (container.offsetWidth / 2) + (button.offsetWidth / 2)
+      
+      container.scrollTo({
+        left: scrollLeft,
+        behavior: 'smooth'
+      })
+    }
+  })
+}
 
 // Load inbox on mount
 onMounted(async () => {
+  // Check for status query parameter
+  const statusParam = route.query.status as string
+  if (statusParam && ['reported', 'assigned', 'in_progress', 'completed'].includes(statusParam)) {
+    filterStatus.value = statusParam as 'reported' | 'assigned' | 'in_progress' | 'completed'
+  }
+  
   try {
     await getInbox()
+    
+    // Scroll to active filter after data is loaded
+    scrollToActiveFilter()
   } catch (error) {
     console.error('Failed to load inbox:', error)
   }

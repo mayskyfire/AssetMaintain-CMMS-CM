@@ -45,7 +45,11 @@
 
       <!-- Stats -->
       <div class="grid grid-cols-3 gap-3">
-        <UiCard class-name="p-2">
+        <UiCard 
+          :clickable="true"
+          class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
+          @click="router.push('/requester/notifications?status=pending')"
+        >
           <div class="flex items-center gap-2 mb-2">
             <Icon name="lucide:clock" size="16" class="text-[#fe9a00]" />
             <span class="text-[11px] text-slate-500">รอดำเนินการ</span>
@@ -53,7 +57,11 @@
           <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.pending }}</p>
         </UiCard>
 
-        <UiCard class-name="p-2">
+        <UiCard 
+          :clickable="true"
+          class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
+          @click="router.push('/requester/notifications?status=in_progress')"
+        >
           <div class="flex items-center gap-2 mb-2">
             <Icon name="lucide:alert-circle" size="16" class="text-[#00a6ff]" />
             <span class="text-[11px] text-slate-500">กำลังซ่อม</span>
@@ -61,7 +69,11 @@
           <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.inProgress }}</p>
         </UiCard>
 
-        <UiCard class-name="p-2">
+        <UiCard 
+          :clickable="true"
+          class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
+          @click="router.push('/requester/notifications?status=completed')"
+        >
           <div class="flex items-center gap-2 mb-2">
             <Icon name="lucide:check-circle" size="16" class="text-[#6dd400]" />
             <span class="text-[11px] text-slate-500">เสร็จสิ้น</span>

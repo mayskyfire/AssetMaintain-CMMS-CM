@@ -15,8 +15,9 @@
       </div>
 
       <!-- Status Filters -->
-      <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+      <div ref="filterContainer" class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
         <button
+          ref="filterAll"
           @click="filterStatus = 'all'"
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
@@ -28,6 +29,7 @@
           ทั้งหมด ({{ notifications.length }})
         </button>
         <button
+          ref="filterPending"
           @click="filterStatus = 'pending'"
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
@@ -39,6 +41,7 @@
           รอดำเนินการ ({{ pendingCount }})
         </button>
         <button
+          ref="filterInProgress"
           @click="filterStatus = 'in_progress'"
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
@@ -50,6 +53,7 @@
           กำลังซ่อม ({{ inProgressCount }})
         </button>
         <button
+          ref="filterCompleted"
           @click="filterStatus = 'completed'"
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
@@ -116,19 +120,66 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const route = useRoute()
 const { getNotifications } = useNotificationService()
 const { notifications, loading } = useNotificationState()
 
 const searchTerm = ref('')
 const filterStatus = ref('all')
+const filterContainer = ref<HTMLElement | null>(null)
+const filterAll = ref<HTMLElement | null>(null)
+const filterPending = ref<HTMLElement | null>(null)
+const filterInProgress = ref<HTMLElement | null>(null)
+const filterCompleted = ref<HTMLElement | null>(null)
+
+// Scroll to active filter button
+const scrollToActiveFilter = () => {
+  nextTick(() => {
+    let targetButton: HTMLElement | null = null
+    
+    if (filterStatus.value === 'pending') {
+      targetButton = filterPending.value
+    } else if (filterStatus.value === 'in_progress') {
+      targetButton = filterInProgress.value
+    } else if (filterStatus.value === 'completed') {
+      targetButton = filterCompleted.value
+    } else {
+      targetButton = filterAll.value
+    }
+    
+    if (targetButton && filterContainer.value) {
+      const container = filterContainer.value
+      const button = targetButton
+      const containerRect = container.getBoundingClientRect()
+      const buttonRect = button.getBoundingClientRect()
+      
+      // Calculate scroll position to center the button
+      const scrollLeft = button.offsetLeft - (container.offsetWidth / 2) + (button.offsetWidth / 2)
+      
+      container.scrollTo({
+        left: scrollLeft,
+        behavior: 'smooth'
+      })
+    }
+  })
+}
 
 // Load notifications on mount
 onMounted(async () => {
+  // Check for status query parameter
+  const statusParam = route.query.status as string
+  if (statusParam && ['pending', 'in_progress', 'completed'].includes(statusParam)) {
+    filterStatus.value = statusParam
+  }
+  
   try {
     await getNotifications({
       page: 1,
       limit: 50
     })
+    
+    // Scroll to active filter after data is loaded
+    scrollToActiveFilter()
   } catch (error) {
     console.error('Failed to load notifications:', error)
   }
