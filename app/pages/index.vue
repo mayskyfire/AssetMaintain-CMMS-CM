@@ -156,11 +156,11 @@ const handleLogin = async () => {
           router.push('/requester/')
           break
         case 'technician':
-          router.push('/technician/jobs')
+          router.push('/technician/')
           break
         case 'planner':
         case 'engineer':
-          router.push('/supervisor/inbox')
+          router.push('/supervisor/')
           break
         default:
           router.push('/requester/')
