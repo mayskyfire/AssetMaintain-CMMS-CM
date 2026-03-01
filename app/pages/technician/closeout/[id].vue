@@ -324,19 +324,25 @@ const loadJobDetails = async () => {
 onMounted(async () => {
   await loadJobDetails()
   
-  const saved = localStorage.getItem(`worklog_${jobId.value}`)
-  if (saved) {
-    const data = JSON.parse(saved)
-    summary.value = data.notes || ''
-    elapsedSeconds.value = data.elapsedSeconds || 0
-    
-    console.log('Loaded worklog data:', {
-      notes: summary.value,
-      elapsedSeconds: elapsedSeconds.value,
-      laborHours: laborHours.value
-    })
-  } else {
-    console.warn('No worklog data found in localStorage')
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem(`worklog_${jobId.value}`)
+      if (saved) {
+        const data = JSON.parse(saved)
+        summary.value = data.notes || ''
+        elapsedSeconds.value = data.elapsedSeconds || 0
+        
+        console.log('Loaded worklog data:', {
+          notes: summary.value,
+          elapsedSeconds: elapsedSeconds.value,
+          laborHours: laborHours.value
+        })
+      } else {
+        console.warn('No worklog data found in localStorage')
+      }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error)
+    }
   }
 })
 
@@ -431,7 +437,13 @@ const handleConfirmComplete = async () => {
     })
     showSuccess('บันทึกลงคิวออฟไลน์แล้ว')
     // Clear localStorage
-    localStorage.removeItem(`worklog_${jobId.value}`)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`worklog_${jobId.value}`)
+      } catch (error) {
+        console.error('Error removing from localStorage:', error)
+      }
+    }
     setTimeout(() => router.push('/technician/jobs'), 1000)
     return
   }
@@ -464,7 +476,13 @@ const handleConfirmComplete = async () => {
     showSuccess('ปิดงานสำเร็จ')
     
     // Clear localStorage
-    localStorage.removeItem(`worklog_${jobId.value}`)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`worklog_${jobId.value}`)
+      } catch (error) {
+        console.error('Error removing from localStorage:', error)
+      }
+    }
     setTimeout(() => {
       router.push('/technician/jobs')
     }, 1000)

@@ -71,9 +71,14 @@ const isActive = (path: string) => {
   }
   
   // For notifications page, check localStorage for last active page
-  if (route.path === '/notifications') {
-    const lastActivePage = localStorage.getItem('lastActivePage')
-    return lastActivePage === path || lastActivePage?.startsWith(path)
+  if (route.path === '/notifications' && typeof window !== 'undefined') {
+    try {
+      const lastActivePage = localStorage.getItem('lastActivePage')
+      return lastActivePage === path || lastActivePage?.startsWith(path)
+    } catch (error) {
+      console.error('Error accessing localStorage:', error)
+      return false
+    }
   }
   
   return false
@@ -81,6 +86,12 @@ const isActive = (path: string) => {
 
 const saveActivePage = (path: string) => {
   // Save the clicked page as the last active page
-  localStorage.setItem('lastActivePage', path)
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('lastActivePage', path)
+    } catch (error) {
+      console.error('Error saving to localStorage:', error)
+    }
+  }
 }
 </script>

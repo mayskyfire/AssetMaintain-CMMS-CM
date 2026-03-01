@@ -93,11 +93,17 @@ onMounted(async () => {
   try {
     await getJobDetail(jobId.value)
     // Load saved worklog from localStorage if exists
-    const saved = localStorage.getItem(`worklog_${jobId.value}`)
-    if (saved) {
-      const data = JSON.parse(saved)
-      workNote.value = data.notes || ''
-      elapsedSeconds.value = data.elapsedSeconds || 0
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(`worklog_${jobId.value}`)
+        if (saved) {
+          const data = JSON.parse(saved)
+          workNote.value = data.notes || ''
+          elapsedSeconds.value = data.elapsedSeconds || 0
+        }
+      } catch (error) {
+        console.error('Error loading from localStorage:', error)
+      }
     }
   } catch (error) {
     console.error('Failed to load job detail:', error)
@@ -136,11 +142,17 @@ const toggleTimer = () => {
 }
 
 const saveToLocalStorage = () => {
-  localStorage.setItem(`worklog_${jobId.value}`, JSON.stringify({
-    notes: workNote.value,
-    elapsedSeconds: elapsedSeconds.value,
-    lastSaved: new Date().toISOString()
-  }))
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(`worklog_${jobId.value}`, JSON.stringify({
+        notes: workNote.value,
+        elapsedSeconds: elapsedSeconds.value,
+        lastSaved: new Date().toISOString()
+      }))
+    } catch (error) {
+      console.error('Error saving to localStorage:', error)
+    }
+  }
 }
 
 const handleSaveWorklog = () => {
