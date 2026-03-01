@@ -8,15 +8,22 @@ const DISMISS_HOURS = 24
 
 export const usePwaBannerDismiss = () => {
   /**
+   * Check if we're in browser environment
+   */
+  const isBrowser = () => {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+  }
+
+  /**
    * Check if banner was dismissed within the last 24 hours
    */
   const isDismissed = (): boolean => {
-    if (typeof window === 'undefined') return false
-    
-    const dismissedAt = localStorage.getItem(DISMISS_KEY)
-    if (!dismissedAt) return false
+    if (!isBrowser()) return false
     
     try {
+      const dismissedAt = localStorage.getItem(DISMISS_KEY)
+      if (!dismissedAt) return false
+      
       const dismissedTime = new Date(dismissedAt).getTime()
       const now = new Date().getTime()
       const hoursPassed = (now - dismissedTime) / (1000 * 60 * 60)
@@ -31,7 +38,6 @@ export const usePwaBannerDismiss = () => {
       return false
     } catch (error) {
       console.error('[usePwaBannerDismiss] Error checking dismiss status:', error)
-      localStorage.removeItem(DISMISS_KEY)
       return false
     }
   }
@@ -40,35 +46,43 @@ export const usePwaBannerDismiss = () => {
    * Dismiss the banner for 24 hours
    */
   const dismissBanner = (): void => {
-    if (typeof window === 'undefined') return
+    if (!isBrowser()) return
     
-    const now = new Date().toISOString()
-    localStorage.setItem(DISMISS_KEY, now)
-    
-    const showAgainAt = new Date(Date.now() + DISMISS_HOURS * 60 * 60 * 1000)
-    console.log(`[usePwaBannerDismiss] Banner dismissed until: ${showAgainAt.toLocaleString('th-TH')}`)
+    try {
+      const now = new Date().toISOString()
+      localStorage.setItem(DISMISS_KEY, now)
+      
+      const showAgainAt = new Date(Date.now() + DISMISS_HOURS * 60 * 60 * 1000)
+      console.log(`[usePwaBannerDismiss] Banner dismissed until: ${showAgainAt.toLocaleString('th-TH')}`)
+    } catch (error) {
+      console.error('[usePwaBannerDismiss] Error dismissing banner:', error)
+    }
   }
 
   /**
    * Clear dismiss state (e.g., when user installs the app)
    */
   const clearDismiss = (): void => {
-    if (typeof window === 'undefined') return
+    if (!isBrowser()) return
     
-    localStorage.removeItem(DISMISS_KEY)
-    console.log('[usePwaBannerDismiss] Dismiss state cleared')
+    try {
+      localStorage.removeItem(DISMISS_KEY)
+      console.log('[usePwaBannerDismiss] Dismiss state cleared')
+    } catch (error) {
+      console.error('[usePwaBannerDismiss] Error clearing dismiss:', error)
+    }
   }
 
   /**
    * Get remaining hours until banner shows again
    */
   const getRemainingHours = (): number => {
-    if (typeof window === 'undefined') return 0
-    
-    const dismissedAt = localStorage.getItem(DISMISS_KEY)
-    if (!dismissedAt) return 0
+    if (!isBrowser()) return 0
     
     try {
+      const dismissedAt = localStorage.getItem(DISMISS_KEY)
+      if (!dismissedAt) return 0
+      
       const dismissedTime = new Date(dismissedAt).getTime()
       const now = new Date().getTime()
       const hoursPassed = (now - dismissedTime) / (1000 * 60 * 60)
@@ -76,6 +90,7 @@ export const usePwaBannerDismiss = () => {
       
       return hoursLeft > 0 ? hoursLeft : 0
     } catch (error) {
+      console.error('[usePwaBannerDismiss] Error getting remaining hours:', error)
       return 0
     }
   }
@@ -84,15 +99,16 @@ export const usePwaBannerDismiss = () => {
    * Get the date/time when banner will show again
    */
   const getShowAgainDate = (): Date | null => {
-    if (typeof window === 'undefined') return null
-    
-    const dismissedAt = localStorage.getItem(DISMISS_KEY)
-    if (!dismissedAt) return null
+    if (!isBrowser()) return null
     
     try {
+      const dismissedAt = localStorage.getItem(DISMISS_KEY)
+      if (!dismissedAt) return null
+      
       const dismissedTime = new Date(dismissedAt).getTime()
       return new Date(dismissedTime + DISMISS_HOURS * 60 * 60 * 1000)
     } catch (error) {
+      console.error('[usePwaBannerDismiss] Error getting show again date:', error)
       return null
     }
   }

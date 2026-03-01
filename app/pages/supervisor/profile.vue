@@ -4,7 +4,9 @@
     
     <div class="p-4 space-y-4 pb-24">
       <!-- PWA Install Banner -->
-      <UiPwaInstallBanner />
+      <ClientOnly>
+        <UiPwaInstallBanner />
+      </ClientOnly>
 
       <!-- Loading State -->
       <UiLoading v-if="loading" />

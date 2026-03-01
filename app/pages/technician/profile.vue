@@ -3,9 +3,6 @@
     <LayoutMobileHeader title="โปรไฟล์" />
     
     <div class="p-4 space-y-4 pb-24">
-      <!-- PWA Install Banner -->
-      <UiPwaInstallBanner />
-
       <!-- Loading State -->
       <UiLoading v-if="loading" />
 
