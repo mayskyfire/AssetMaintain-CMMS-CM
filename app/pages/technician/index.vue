@@ -148,10 +148,14 @@ const { user, loadUserFromStorage } = useAuth()
 const { getJobs } = useTechnicianService()
 const { jobs, loading } = useTechnicianState()
 const { finishLoading } = useAppLoader()
+const { saveCurrentPage } = useActiveNavigation()
 
 // Load data on mount
 onMounted(async () => {
   await loadUserFromStorage()
+  
+  // Save this page as active for BottomNav
+  saveCurrentPage()
   
   try {
     await getJobs({ page: 1, limit: 10 })

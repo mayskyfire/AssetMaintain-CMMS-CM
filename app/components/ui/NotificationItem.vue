@@ -1,31 +1,73 @@
 <template>
-  <div
-    class="notification-item"
-    :class="{ 'unread': !notification.is_read, [priorityClass]: true }"
+  <UiCard 
+    :class-name="[
+      'p-4 cursor-pointer transition-all active:scale-[0.98]',
+      !notification.is_read ? 'bg-blue-50 border-l-4 border-[#00a6ff]' : 'bg-white'
+    ]"
     @click="$emit('click', notification)"
   >
-    <div class="icon">
-      <Icon :name="iconName" :size="20" />
-    </div>
-
-    <div class="content">
-      <div class="header">
-        <h4 class="title">{{ notification.title }}</h4>
-        <span class="time">{{ relativeTime }}</span>
+    <div class="flex gap-3">
+      <!-- Icon -->
+      <div 
+        :class="[
+          'w-12 h-12 rounded-full flex items-center justify-center shrink-0',
+          iconBgClass
+        ]"
+      >
+        <Icon :name="iconName" class="w-6 h-6" :class="iconColorClass" />
       </div>
-      <p class="message">{{ notification.message }}</p>
-      <div v-if="notification.metadata" class="metadata">
-        <span v-if="notification.metadata.notification_id" class="tag">
-          {{ notification.metadata.notification_id }}
-        </span>
-        <span v-if="notification.metadata.asset_code" class="tag">
-          {{ notification.metadata.asset_code }}
-        </span>
+
+      <!-- Content -->
+      <div class="flex-1 min-w-0">
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-2 mb-1">
+          <h4 class="text-[14px] font-bold text-slate-800 line-clamp-1">
+            {{ notification.title }}
+          </h4>
+          <span class="text-[11px] text-slate-500 whitespace-nowrap">
+            {{ relativeTime }}
+          </span>
+        </div>
+
+        <!-- Message -->
+        <p class="text-[13px] text-slate-600 line-clamp-2 mb-2">
+          {{ notification.message }}
+        </p>
+
+        <!-- Metadata Tags -->
+        <div v-if="notification.metadata" class="flex flex-wrap gap-2">
+          <span 
+            v-if="notification.metadata.notification_id" 
+            class="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-md"
+          >
+            <Icon name="lucide:hash" class="w-3 h-3" />
+            {{ notification.metadata.notification_id }}
+          </span>
+          <span 
+            v-if="notification.metadata.asset_code" 
+            class="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-md"
+          >
+            <Icon name="lucide:package" class="w-3 h-3" />
+            {{ notification.metadata.asset_code }}
+          </span>
+        </div>
+
+        <!-- Priority Badge -->
+        <div v-if="notification.priority === 'critical' || notification.priority === 'high'" class="mt-2">
+          <UiBadge
+            :label="notification.priority === 'critical' ? 'เร่งด่วนมาก' : 'เร่งด่วน'"
+            variant="danger"
+            size="small"
+          />
+        </div>
+      </div>
+
+      <!-- Unread Indicator -->
+      <div v-if="!notification.is_read" class="shrink-0">
+        <div class="w-2.5 h-2.5 bg-[#00a6ff] rounded-full"></div>
       </div>
     </div>
-
-    <div v-if="!notification.is_read" class="unread-dot"></div>
-  </div>
+  </UiCard>
 </template>
 
 <script setup lang="ts">
@@ -46,7 +88,7 @@ const iconName = computed(() => {
     'cm_accepted': 'lucide:check-circle',
     'cm_in_progress': 'lucide:wrench',
     'cm_completed': 'lucide:check-circle-2',
-    'cm_evaluated': 'lucide:star',
+    'cm_evaluated': 'lucide:thumbs-up',
     'pm_reminder': 'lucide:clock',
     'pm_overdue': 'lucide:alert-circle',
     'system': 'lucide:bell'
@@ -54,8 +96,24 @@ const iconName = computed(() => {
   return iconMap[props.notification.type] || 'lucide:bell'
 })
 
-const priorityClass = computed(() => {
-  return `priority-${props.notification.priority}`
+const iconBgClass = computed(() => {
+  const bgMap: Record<string, string> = {
+    'critical': 'bg-red-100',
+    'high': 'bg-orange-100',
+    'medium': 'bg-blue-100',
+    'low': 'bg-slate-100'
+  }
+  return bgMap[props.notification.priority] || 'bg-slate-100'
+})
+
+const iconColorClass = computed(() => {
+  const colorMap: Record<string, string> = {
+    'critical': 'text-[#ff3b30]',
+    'high': 'text-[#fe9a00]',
+    'medium': 'text-[#00a6ff]',
+    'low': 'text-slate-500'
+  }
+  return colorMap[props.notification.priority] || 'text-slate-500'
 })
 
 const relativeTime = computed(() => {
@@ -68,9 +126,9 @@ const relativeTime = computed(() => {
   const days = Math.floor(diff / 86400000)
   
   if (minutes < 1) return 'เมื่อสักครู่'
-  if (minutes < 60) return `${minutes} นาทีที่แล้ว`
-  if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`
-  if (days < 7) return `${days} วันที่แล้ว`
+  if (minutes < 60) return `${minutes} นาที`
+  if (hours < 24) return `${hours} ชม.`
+  if (days < 7) return `${days} วัน`
   
   return date.toLocaleDateString('th-TH', {
     day: 'numeric',
@@ -79,122 +137,3 @@ const relativeTime = computed(() => {
   })
 })
 </script>
-
-<style scoped>
-.notification-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px 20px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  position: relative;
-}
-
-.notification-item:hover {
-  background-color: #f9fafb;
-}
-
-.notification-item.unread {
-  background-color: #eff6ff;
-}
-
-.notification-item.unread:hover {
-  background-color: #dbeafe;
-}
-
-.icon {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background-color: #e5e7eb;
-}
-
-.priority-critical .icon {
-  background-color: #fee2e2;
-  color: #dc2626;
-}
-
-.priority-high .icon {
-  background-color: #fed7aa;
-  color: #ea580c;
-}
-
-.priority-medium .icon {
-  background-color: #dbeafe;
-  color: #2563eb;
-}
-
-.priority-low .icon {
-  background-color: #e5e7eb;
-  color: #6b7280;
-}
-
-.content {
-  flex: 1;
-  min-width: 0;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.time {
-  font-size: 12px;
-  color: #9ca3af;
-  white-space: nowrap;
-}
-
-.message {
-  margin: 0;
-  font-size: 13px;
-  color: #6b7280;
-  line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.metadata {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.tag {
-  display: inline-block;
-  padding: 2px 8px;
-  background-color: #f3f4f6;
-  color: #6b7280;
-  font-size: 11px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.unread-dot {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  background-color: #3b82f6;
-  border-radius: 50%;
-}
-</style>

@@ -153,6 +153,9 @@ const { finishLoading } = useAppLoader()
 
 // Load data on mount
 onMounted(async () => {
+  const { saveCurrentPage } = useActiveNavigation()
+  saveCurrentPage()
+  
   // Ensure user state is loaded from localStorage after hydration
   await loadUserFromStorage()
   

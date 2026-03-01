@@ -3,54 +3,79 @@
     <LayoutMobileHeader title="การแจ้งเตือน" :show-back="true" />
 
     <div class="p-4 space-y-4 pb-24">
-      <!-- Actions Bar -->
-      <div class="flex items-center justify-between">
-        <div class="flex gap-2">
-          <!-- Filter Buttons -->
-          <button
-            @click="filters.isRead = ''"
-            :class="[
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-              filters.isRead === '' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white text-slate-600 border border-slate-200'
-            ]"
-          >
-            ทั้งหมด
-          </button>
-          <button
-            @click="filters.isRead = 'false'"
-            :class="[
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-              filters.isRead === 'false' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white text-slate-600 border border-slate-200'
-            ]"
-          >
-            ยังไม่อ่าน
-          </button>
+      <!-- Stats Card -->
+      <UiCard class-name="p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[11px] text-slate-500 mb-1">การแจ้งเตือนทั้งหมด</p>
+            <p class="text-[24px] font-bold text-slate-800">{{ pagination.total }}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-[11px] text-slate-500 mb-1">ยังไม่อ่าน</p>
+            <p class="text-[24px] font-bold text-[#00a6ff]">{{ unreadCount }}</p>
+          </div>
         </div>
+      </UiCard>
 
+      <!-- Filter Tabs -->
+      <div class="flex items-center gap-2">
         <button
-          v-if="unreadCount > 0"
-          @click="handleMarkAllRead"
-          class="px-3 py-1.5 rounded-lg text-sm font-medium bg-white text-blue-500 border border-blue-200 hover:bg-blue-50 transition-colors"
+          @click="filters.isRead = ''"
+          :class="[
+            'flex-1 px-4 py-2.5 rounded-[10px] text-[13px] font-bold transition-all',
+            filters.isRead === '' 
+              ? 'bg-[#00a6ff] text-white shadow-sm' 
+              : 'bg-white text-slate-600 border border-slate-200'
+          ]"
         >
+          ทั้งหมด
+        </button>
+        <button
+          @click="filters.isRead = 'false'"
+          :class="[
+            'flex-1 px-4 py-2.5 rounded-[10px] text-[13px] font-bold transition-all relative',
+            filters.isRead === 'false' 
+              ? 'bg-[#00a6ff] text-white shadow-sm' 
+              : 'bg-white text-slate-600 border border-slate-200'
+          ]"
+        >
+          ยังไม่อ่าน
+          <span v-if="unreadCount > 0" class="absolute -top-1 -right-1 w-5 h-5 bg-[#ff3b30] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Mark All Read Button -->
+      <div v-if="unreadCount > 0 && filters.isRead === 'false'" class="flex justify-end">
+        <button
+          @click="handleMarkAllRead"
+          class="px-4 py-2 rounded-[10px] text-[13px] font-bold bg-white text-[#00a6ff] border border-[#00a6ff] active:bg-blue-50 transition-colors flex items-center gap-2"
+        >
+          <Icon name="lucide:check-circle" class="w-4 h-4" />
           อ่านทั้งหมด
         </button>
       </div>
 
-      <!-- Notifications List -->
+      <!-- Loading State -->
       <div v-if="loading" class="flex justify-center py-12">
         <UiLoading />
       </div>
 
-      <div v-else-if="notifications.length === 0" class="flex flex-col items-center justify-center py-16">
-        <Icon name="lucide:bell-off" size="64" class="text-slate-300 mb-4" />
-        <h3 class="text-lg font-semibold text-slate-600 mb-2">ไม่มีการแจ้งเตือน</h3>
-        <p class="text-sm text-slate-400">คุณไม่มีการแจ้งเตือนในขณะนี้</p>
-      </div>
+      <!-- Empty State -->
+      <UiCard v-else-if="notifications.length === 0" class-name="p-8">
+        <div class="flex flex-col items-center justify-center text-center">
+          <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+            <Icon name="lucide:bell-off" class="w-10 h-10 text-slate-400" />
+          </div>
+          <h3 class="text-[16px] font-bold text-slate-800 mb-2">ไม่มีการแจ้งเตือน</h3>
+          <p class="text-[13px] text-slate-500">
+            {{ filters.isRead === 'false' ? 'คุณอ่านการแจ้งเตือนทั้งหมดแล้ว' : 'คุณไม่มีการแจ้งเตือนในขณะนี้' }}
+          </p>
+        </div>
+      </UiCard>
 
+      <!-- Notifications List -->
       <div v-else class="space-y-2">
         <UiNotificationItem
           v-for="notification in notifications"
@@ -61,31 +86,36 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="pagination.totalPages > 1" class="flex items-center justify-center gap-4 pt-4">
+      <div v-if="pagination.totalPages > 1" class="flex items-center justify-center gap-3 pt-2">
         <button
           @click="goToPage(pagination.page - 1)"
           :disabled="pagination.page === 1"
-          class="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+          class="w-10 h-10 flex items-center justify-center rounded-[10px] bg-white border border-slate-200 disabled:opacity-30 disabled:cursor-not-allowed active:bg-slate-50 transition-colors"
         >
-          <Icon name="lucide:chevron-left" :size="20" />
+          <Icon name="lucide:chevron-left" class="w-5 h-5 text-slate-600" />
         </button>
 
-        <span class="text-sm text-slate-600 font-medium">
-          {{ pagination.page }} / {{ pagination.totalPages }}
-        </span>
+        <div class="flex items-center gap-2">
+          <span class="text-[13px] text-slate-600 font-bold">
+            หน้า {{ pagination.page }}
+          </span>
+          <span class="text-[13px] text-slate-400">
+            / {{ pagination.totalPages }}
+          </span>
+        </div>
 
         <button
           @click="goToPage(pagination.page + 1)"
           :disabled="pagination.page === pagination.totalPages"
-          class="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+          class="w-10 h-10 flex items-center justify-center rounded-[10px] bg-white border border-slate-200 disabled:opacity-30 disabled:cursor-not-allowed active:bg-slate-50 transition-colors"
         >
-          <Icon name="lucide:chevron-right" :size="20" />
+          <Icon name="lucide:chevron-right" class="w-5 h-5 text-slate-600" />
         </button>
       </div>
     </div>
 
     <!-- Bottom Navigation -->
-    <LayoutBottomNav />
+    <LayoutBottomNav :role="userRole" />
   </div>
 </template>
 
@@ -100,6 +130,14 @@ const {
   markAsRead,
   markAllAsRead
 } = useNotifications()
+
+const { user } = useAuth()
+const router = useRouter()
+
+// Get user role for BottomNav
+const userRole = computed(() => {
+  return user.value?.role || 'requester'
+})
 
 const filters = reactive({
   isRead: '',

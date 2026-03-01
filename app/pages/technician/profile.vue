@@ -158,6 +158,9 @@ const loggingOut = ref(false)
 
 // Load stats on mount
 onMounted(async () => {
+  const { saveCurrentPage } = useActiveNavigation()
+  saveCurrentPage()
+  
   loadUserFromStorage()
   try {
     await getStats()

@@ -165,6 +165,9 @@ const scrollToActiveFilter = () => {
 
 // Load jobs on mount
 onMounted(async () => {
+  const { saveCurrentPage } = useActiveNavigation()
+  saveCurrentPage()
+  
   // Check for status query parameter
   const statusParam = route.query.status as string
   if (statusParam && ['assigned', 'in_progress', 'completed'].includes(statusParam)) {

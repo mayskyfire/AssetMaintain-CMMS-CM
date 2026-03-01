@@ -21,7 +21,7 @@
           <Icon name="lucide:bell" size="22" class="text-slate-700" />
           <span 
             v-if="unreadCount > 0" 
-            class="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1"
+            class="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-[#ff3b30] text-white text-[10px] font-bold rounded-full px-1"
           >
             {{ unreadCount > 99 ? '99+' : unreadCount }}
           </span>
