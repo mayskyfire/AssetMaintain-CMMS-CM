@@ -11,8 +11,26 @@
         </button>
         <h1 class="text-[18px] font-bold text-slate-800 truncate">{{ title }}</h1>
       </div>
-      <div v-if="$slots.action" class="ml-2">
-        <slot name="action" />
+      
+      <div class="flex items-center gap-2">
+        <!-- Notification Bell -->
+        <button
+          @click="goToNotifications"
+          class="relative w-10 h-10 flex items-center justify-center rounded-[10px] hover:bg-slate-100 active:bg-slate-200 transition-colors"
+        >
+          <Icon name="lucide:bell" size="22" class="text-slate-700" />
+          <span 
+            v-if="unreadCount > 0" 
+            class="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1"
+          >
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </span>
+        </button>
+
+        <!-- Custom Action Slot -->
+        <div v-if="$slots.action">
+          <slot name="action" />
+        </div>
       </div>
     </div>
   </header>
@@ -29,8 +47,24 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const router = useRouter()
+const { unreadCount } = useNotifications()
+const { initialize } = useNotificationInit()
+
+// Initialize notification system on mount
+onMounted(async () => {
+  try {
+    await initialize()
+    // SSE จะ update unread count แบบ real-time แล้ว ไม่ต้อง polling
+  } catch (error) {
+    console.error('Failed to initialize notifications:', error)
+  }
+})
 
 const handleBack = () => {
   router.back()
+}
+
+const goToNotifications = () => {
+  navigateTo('/notifications')
 }
 </script>

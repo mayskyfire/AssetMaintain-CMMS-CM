@@ -119,6 +119,31 @@ export default defineEventHandler(async (event) => {
       [insertId]
     )
 
+    // Get asset details for notification
+    const asset = await queryOne<{
+      asset_code: string
+      asset_name: string
+    }>(
+      'SELECT asset_code, asset_name FROM assets WHERE id = ?',
+      [body.asset_id]
+    )
+
+    // Send notification to supervisors about new CM job
+    try {
+      const { notifyCMCreated } = await import('../../../utils/notificationHelper')
+      await notifyCMCreated(insertId, {
+        notification_id: notificationId,
+        asset_code: asset?.asset_code || '',
+        asset_name: asset?.asset_name || '',
+        problem_description: body.problem_description,
+        priority: body.priority || 'medium',
+        requester_name: requesterName
+      })
+    } catch (notifError) {
+      console.error('Failed to send CM created notification:', notifError)
+      // Don't fail the request if notification fails
+    }
+
     return {
       success: true,
       data: notification,

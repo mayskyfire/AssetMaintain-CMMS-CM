@@ -1,4 +1,5 @@
 import type { AssignTechnicianRequest } from '~/types/api'
+import { notifyCMStatusChange } from '../../utils/notificationHelper'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -100,6 +101,44 @@ export default defineEventHandler(async (event) => {
        VALUES (?, ?, ?, ?, NOW())`,
       [body.cm_history_id, 'มอบหมายช่างซ่อม', `มอบหมายให้: ${technicianName}`, 'completed']
     )
+
+    // Get CM data for notification
+    const cmData = await queryOne<{
+      notification_id: string
+      asset_id: number
+      requester_id: number
+      problem_description: string
+    }>(
+      `SELECT 
+        cm.notification_id,
+        cm.asset_id,
+        cm.requester_id,
+        cm.problem_description
+       FROM cm_history cm
+       WHERE cm.id = ?`,
+      [body.cm_history_id]
+    )
+
+    // Get asset code
+    const asset = await queryOne<{ asset_code: string }>(
+      'SELECT asset_code FROM assets WHERE id = ?',
+      [cmData?.asset_id]
+    )
+
+    // Send notifications to Requester and Technician
+    try {
+      await notifyCMStatusChange(body.cm_history_id, 'assigned', {
+        notification_id: cmData?.notification_id,
+        asset_code: asset?.asset_code,
+        requester_id: cmData?.requester_id,
+        technician_id: body.technician_id,
+        technician_name: technicianName,
+        problem_description: cmData?.problem_description
+      })
+    } catch (notifError) {
+      console.error('Failed to send assignment notifications:', notifError)
+      // Don't fail the request if notification fails
+    }
 
     return {
       success: true,

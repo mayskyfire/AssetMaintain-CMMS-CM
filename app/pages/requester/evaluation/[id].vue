@@ -109,7 +109,7 @@ onMounted(async () => {
     // Check if already evaluated
     if (currentNotification.value?.satisfaction_rating) {
       showError('ใบแจ้งซ่อมนี้ได้รับการประเมินแล้ว')
-      router.push(`/requester/notification/${id}`)
+      router.push(`/requester/job/${id}`)
     }
   } catch (error) {
     console.error('Failed to load notification:', error)
@@ -163,7 +163,7 @@ const handleSubmit = async () => {
     showSuccess('ส่งการประเมินเรียบร้อยแล้ว', 'ขอบคุณสำหรับความคิดเห็น')
     
     setTimeout(() => {
-      router.push('/requester/notifications')
+      router.push('/requester/jobs')
     }, 1000)
   } catch (err: any) {
     showError(err.message || 'ส่งการประเมินไม่สำเร็จ')

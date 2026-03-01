@@ -1,4 +1,5 @@
 import type { EvaluateNotificationRequest } from '~/types/api'
+import { notifyCMEvaluation } from '../../../../utils/notificationHelper'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -72,6 +73,39 @@ export default defineEventHandler(async (event) => {
         id
       ]
     )
+
+    // Get CM data for notification
+    const cmData = await queryOne<{
+      notification_id: string
+      technician_id: number
+    }>(
+      'SELECT notification_id, technician_id FROM cm_history WHERE id = ?',
+      [id]
+    )
+
+    console.log('CM Data for evaluation notification:', cmData)
+
+    // Send evaluation notification to technician
+    try {
+      if (cmData?.technician_id) {
+        console.log('Sending evaluation notification to technician:', cmData.technician_id)
+        await notifyCMEvaluation(
+          id,
+          cmData.technician_id,
+          body.satisfaction_rating,
+          {
+            notification_id: cmData.notification_id,
+            satisfaction_comment: body.satisfaction_comment
+          }
+        )
+        console.log('Evaluation notification sent successfully')
+      } else {
+        console.warn('No technician_id found, cannot send evaluation notification')
+      }
+    } catch (notifError) {
+      console.error('Failed to send evaluation notification:', notifError)
+      // Don't fail the request if notification fails
+    }
 
     return {
       success: true,

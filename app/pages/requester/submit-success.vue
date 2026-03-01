@@ -113,6 +113,6 @@ const priority = computed(() => {
 
 const handleViewDetail = () => {
   const id = notificationData.value?.id || notificationId.value
-  router.push(`/requester/notification/${id}`)
+  router.push(`/requester/job/${id}`)
 }
 </script>

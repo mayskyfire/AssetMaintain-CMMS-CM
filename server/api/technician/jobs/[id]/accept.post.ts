@@ -1,4 +1,5 @@
 import type { AcceptJobRequest } from '~/types/api'
+import { notifyCMStatusChange } from '../../../../utils/notificationHelper'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -72,6 +73,46 @@ export default defineEventHandler(async (event) => {
        VALUES (?, ?, ?, ?, NOW())`,
       [id, 'เริ่มดำเนินการซ่อม', body.accepted_by || 'ช่าง', 'in_progress']
     )
+
+    // Get CM data for notification
+    const cmData = await queryOne<{
+      notification_id: string
+      requester_id: number
+      supervisor_id: number | null
+      technician_id: number
+    }>(
+      `SELECT notification_id, requester_id, supervisor_id, technician_id
+       FROM cm_history
+       WHERE id = ?`,
+      [id]
+    )
+
+    // Get technician name
+    const technician = await queryOne<{ full_name: string }>(
+      'SELECT full_name FROM users WHERE id = ?',
+      [cmData?.technician_id]
+    )
+
+    // Send notifications (accepted + in_progress)
+    try {
+      // First: accepted notification
+      await notifyCMStatusChange(id, 'accepted', {
+        notification_id: cmData?.notification_id,
+        requester_id: cmData?.requester_id,
+        supervisor_id: cmData?.supervisor_id,
+        technician_name: technician?.full_name || body.accepted_by || 'ช่าง'
+      })
+
+      // Then: in_progress notification
+      await notifyCMStatusChange(id, 'in_progress', {
+        notification_id: cmData?.notification_id,
+        requester_id: cmData?.requester_id,
+        supervisor_id: cmData?.supervisor_id
+      })
+    } catch (notifError) {
+      console.error('Failed to send accept/in_progress notifications:', notifError)
+      // Don't fail the request if notification fails
+    }
 
     return {
       success: true,

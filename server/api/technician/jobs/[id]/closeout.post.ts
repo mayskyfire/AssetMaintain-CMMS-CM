@@ -1,4 +1,5 @@
 import type { CloseoutJobRequest } from '~/types/api'
+import { notifyCMStatusChange } from '../../../../utils/notificationHelper'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -194,6 +195,30 @@ export default defineEventHandler(async (event) => {
        VALUES (?, ?, ?, ?, NOW())`,
       [id, 'ปิดงานซ่อม', body.completed_by || 'ช่าง', 'completed']
     )
+
+    // Get CM data for notification
+    const cmData = await queryOne<{
+      notification_id: string
+      requester_id: number
+      supervisor_id: number | null
+    }>(
+      `SELECT notification_id, requester_id, supervisor_id
+       FROM cm_history
+       WHERE id = ?`,
+      [id]
+    )
+
+    // Send completion notifications
+    try {
+      await notifyCMStatusChange(id, 'completed', {
+        notification_id: cmData?.notification_id,
+        requester_id: cmData?.requester_id,
+        supervisor_id: cmData?.supervisor_id
+      })
+    } catch (notifError) {
+      console.error('Failed to send completion notifications:', notifError)
+      // Don't fail the request if notification fails
+    }
 
     return {
       success: true,

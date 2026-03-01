@@ -75,7 +75,7 @@
           :key="notif.id"
           :clickable="true"
           class-name="p-4"
-          @click="router.push(`/requester/notification/${notif.id}`)"
+          @click="router.push(`/requester/job/${notif.id}`)"
         >
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-2">

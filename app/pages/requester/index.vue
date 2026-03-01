@@ -32,7 +32,7 @@
         <UiCard
           :clickable="true"
           class-name="p-4 flex flex-col items-center justify-center gap-3 hover:shadow-md transition-shadow"
-          @click="router.push('/requester/notifications')"
+          @click="router.push('/requester/jobs')"
         >
           <div class="w-12 h-12 bg-[#6dd400]/10 rounded-[12px] flex items-center justify-center">
             <Icon name="lucide:list" size="24" class="text-[#6dd400]" />
@@ -48,7 +48,7 @@
         <UiCard 
           :clickable="true"
           class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
-          @click="router.push('/requester/notifications?status=pending')"
+          @click="router.push('/requester/jobs?status=pending')"
         >
           <div class="flex items-center gap-2 mb-2 min-h-[36px]">
             <Icon name="lucide:clock" size="16" class="text-[#fe9a00] shrink-0" />
@@ -60,7 +60,7 @@
         <UiCard 
           :clickable="true"
           class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
-          @click="router.push('/requester/notifications?status=in_progress')"
+          @click="router.push('/requester/jobs?status=in_progress')"
         >
           <div class="flex items-center gap-2 mb-2 min-h-[36px]">
             <Icon name="lucide:alert-circle" size="16" class="text-[#00a6ff] shrink-0" />
@@ -72,7 +72,7 @@
         <UiCard 
           :clickable="true"
           class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
-          @click="router.push('/requester/notifications?status=completed')"
+          @click="router.push('/requester/jobs?status=completed')"
         >
           <div class="flex items-center gap-2 mb-2 min-h-[36px]">
             <Icon name="lucide:check-circle" size="16" class="text-[#6dd400] shrink-0" />
@@ -87,7 +87,7 @@
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-[16px] font-bold text-slate-800">รายการล่าสุด</h3>
           <button
-            @click="router.push('/requester/notifications')"
+            @click="router.push('/requester/jobs')"
             class="text-[13px] text-[#00a6ff] font-bold"
           >
             ดูทั้งหมด
@@ -107,7 +107,7 @@
             :key="notif.id"
             :clickable="true"
             class-name="p-4"
-            @click="router.push(`/requester/notification/${notif.id}`)"
+            @click="router.push(`/requester/job/${notif.id}`)"
           >
             <div class="flex items-start justify-between mb-2">
               <span class="text-[13px] font-bold text-[#00a6ff]">{{ notif.notification_id }}</span>
