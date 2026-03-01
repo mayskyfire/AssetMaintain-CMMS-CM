@@ -90,6 +90,8 @@ definePageMeta({
     function () {
       if (import.meta.server) return
       const { isAuthenticated, getUserInfo } = useAuth()
+      const { finishLoading } = useAppLoader()
+      
       if (isAuthenticated()) {
         const user = getUserInfo()
         if (user) {
@@ -102,6 +104,9 @@ definePageMeta({
           }
         }
       }
+      
+      // Hide loader when reaching login page
+      finishLoading()
     }
   ]
 })

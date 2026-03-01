@@ -1,9 +1,22 @@
-export default defineNuxtRouteMiddleware((to) => {
+export default defineNuxtRouteMiddleware(async (to, from) => {
   // Skip middleware on server-side
   if (import.meta.server) return
 
   try {
-    const { isAuthenticated, user } = useAuth()
+    const { isAuthenticated, user, loadUserFromStorage } = useAuth()
+    const { startLoading, setProgress, setLoadingText, finishLoading } = useAppLoader()
+
+    // Show loader only on initial page load (when from is undefined)
+    const isInitialLoad = !from || from.path === to.path
+    
+    if (isInitialLoad) {
+      startLoading('กำลังตรวจสอบการเข้าสู่ระบบ...')
+      setProgress(20)
+      
+      // Load user from storage
+      await loadUserFromStorage()
+      setProgress(50)
+    }
 
     // Public routes that don't require authentication
     const publicRoutes = ['/']
@@ -12,8 +25,19 @@ export default defineNuxtRouteMiddleware((to) => {
     const requiresAuth = !publicRoutes.includes(to.path)
 
     if (requiresAuth && !isAuthenticated()) {
+      if (isInitialLoad) {
+        setLoadingText('กำลังเปลี่ยนเส้นทาง...')
+        setProgress(80)
+        await new Promise(resolve => setTimeout(resolve, 300))
+        finishLoading()
+      }
       // Redirect to login if not authenticated
       return navigateTo('/')
+    }
+
+    if (isInitialLoad) {
+      setProgress(70)
+      setLoadingText('กำลังโหลดข้อมูล...')
     }
 
     // Role-based access control
@@ -44,6 +68,13 @@ export default defineNuxtRouteMiddleware((to) => {
           if (!config.allowedRoles.includes(userRole)) {
             console.warn(`Access denied: ${userRole} tried to access ${routeName} route`)
             
+            if (isInitialLoad) {
+              setLoadingText('กำลังเปลี่ยนเส้นทาง...')
+              setProgress(80)
+              await new Promise(resolve => setTimeout(resolve, 300))
+              finishLoading()
+            }
+            
             // Redirect to appropriate home page based on user's role
             switch (userRole) {
               case 'requester':
@@ -64,9 +95,19 @@ export default defineNuxtRouteMiddleware((to) => {
       }
     }
 
+    // Complete loading on initial load
+    if (isInitialLoad) {
+      setProgress(90)
+      // Small delay to ensure page is ready
+      await new Promise(resolve => setTimeout(resolve, 200))
+      finishLoading()
+    }
+
     // Redirect for '/' is handled by index.vue page-level middleware
   } catch (error) {
     console.error('Auth middleware error:', error)
+    const { finishLoading } = useAppLoader()
+    finishLoading()
     // Don't block navigation on error
     return
   }

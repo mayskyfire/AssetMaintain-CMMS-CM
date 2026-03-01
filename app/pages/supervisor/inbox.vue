@@ -50,7 +50,7 @@
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
               filterStatus === 'assigned'
-                ? 'bg-[#fef3c6] text-[#bb4d00] border border-[#fe9a00]'
+                ? 'bg-[#00a6ff]/10 text-[#00a6ff] border border-[#00a6ff]'
                 : 'bg-white text-slate-500 border border-slate-200'
             ]"
           >

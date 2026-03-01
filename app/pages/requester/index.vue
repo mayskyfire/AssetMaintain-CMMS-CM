@@ -149,11 +149,12 @@ const { isOnline } = useNetworkStatus()
 const { user, loadUserFromStorage } = useAuth()
 const { getNotifications } = useNotificationService()
 const { notifications, loading } = useNotificationState()
+const { finishLoading } = useAppLoader()
 
 // Load data on mount
 onMounted(async () => {
   // Ensure user state is loaded from localStorage after hydration
-  loadUserFromStorage()
+  await loadUserFromStorage()
   
   try {
     await getNotifications({
@@ -162,6 +163,9 @@ onMounted(async () => {
     })
   } catch (error) {
     console.error('Failed to load notifications:', error)
+  } finally {
+    // Hide global loader after data is loaded
+    finishLoading()
   }
 })
 

@@ -59,13 +59,13 @@
         <UiCard 
           :clickable="true"
           class-name="p-2 hover:shadow-md transition-shadow cursor-pointer"
-          @click="router.push('/supervisor/inbox?status=in_progress')"
+          @click="router.push('/supervisor/inbox?status=assigned')"
         >
           <div class="flex items-center gap-2 mb-2">
             <Icon name="lucide:alert-circle" size="16" class="text-[#00a6ff]" />
-            <span class="text-[11px] text-slate-500">กำลังซ่อม</span>
+            <span class="text-[11px] text-slate-500">มอบหมายแล้ว</span>
           </div>
-          <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.inProgress }}</p>
+          <p class="text-[24px] font-bold text-slate-800 text-center">{{ stats.assigned }}</p>
         </UiCard>
 
         <UiCard 
@@ -147,29 +147,33 @@ const router = useRouter()
 const { user, loadUserFromStorage } = useAuth()
 const { getInbox } = useSupervisorService()
 const { inbox, loading } = useSupervisorState()
+const { finishLoading } = useAppLoader()
 
 // Load data on mount
 onMounted(async () => {
-  loadUserFromStorage()
+  await loadUserFromStorage()
   
   try {
     await getInbox()
   } catch (error) {
     console.error('Failed to load inbox:', error)
+  } finally {
+    // Hide global loader after data is loaded
+    finishLoading()
   }
 })
 
 // Stats
 const stats = computed(() => {
   if (!inbox.value || !Array.isArray(inbox.value)) {
-    return { pending: 0, inProgress: 0, completed: 0 }
+    return { pending: 0, assigned: 0, completed: 0 }
   }
   
   const pending = inbox.value.filter(j => j.status === 'reported' || j.status === 'pending').length
-  const inProgress = inbox.value.filter(j => j.status === 'assigned' || j.status === 'in_progress').length
+  const assigned = inbox.value.filter(j => j.status === 'assigned' || j.status === 'in_progress').length
   const completed = inbox.value.filter(j => j.status === 'completed').length
 
-  return { pending, inProgress, completed }
+  return { pending, assigned, completed }
 })
 
 // Recent jobs (latest 3)

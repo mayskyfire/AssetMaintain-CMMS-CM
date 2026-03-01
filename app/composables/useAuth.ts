@@ -92,11 +92,18 @@ export function useAuth() {
     return null
   }
 
-  function loadUserFromStorage(): void {
+  async function loadUserFromStorage(): Promise<void> {
     if (import.meta.client) {
+      // Simulate loading delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       const stored = localStorage.getItem('user_info')
       if (stored) {
-        try { _user.value = JSON.parse(stored) } catch { /* ignore */ }
+        try { 
+          _user.value = JSON.parse(stored) 
+        } catch { 
+          /* ignore */ 
+        }
       }
     }
   }

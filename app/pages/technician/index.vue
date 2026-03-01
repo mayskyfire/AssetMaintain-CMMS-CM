@@ -147,15 +147,19 @@ const router = useRouter()
 const { user, loadUserFromStorage } = useAuth()
 const { getJobs } = useTechnicianService()
 const { jobs, loading } = useTechnicianState()
+const { finishLoading } = useAppLoader()
 
 // Load data on mount
 onMounted(async () => {
-  loadUserFromStorage()
+  await loadUserFromStorage()
   
   try {
     await getJobs({ page: 1, limit: 10 })
   } catch (error) {
     console.error('Failed to load jobs:', error)
+  } finally {
+    // Hide global loader after data is loaded
+    finishLoading()
   }
 })
 
