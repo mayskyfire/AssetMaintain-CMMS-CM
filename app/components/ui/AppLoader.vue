@@ -24,7 +24,7 @@
         <!-- App Name -->
         <div class="text-center">
           <h1 class="text-[28px] font-bold text-white mb-2 tracking-tight">
-            AssetMaintain CMMS - CM
+            AssetMaintain CMMS<br />CM
           </h1>
           <p class="text-[14px] text-white/80 animate-pulse">
             {{ loadingText }}
