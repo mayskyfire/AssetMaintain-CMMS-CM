@@ -147,7 +147,10 @@ export interface CloseoutRequest {
   preventive_recommendation?: string
   completion_date: string
   qr_scanned_end?: string
+  downtime_hours?: number
   labor_hours: number
+  labor_cost?: number
+  external_cost?: number
   photos?: string[] // base64 or URLs
   signature?: string // base64
   completed_by: string

@@ -9,6 +9,19 @@
         <h2 class="text-[14px] font-bold text-slate-800 mt-1">{{ assetName }}</h2>
       </UiCard>
 
+      <!-- Warning if no worklog data -->
+      <UiCard v-if="elapsedSeconds === 0" class-name="p-4 bg-amber-50 border-amber-200">
+        <div class="flex items-start gap-3">
+          <Icon name="lucide:alert-circle" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p class="text-[13px] font-bold text-amber-800">ไม่พบข้อมูล Worklog</p>
+            <p class="text-[12px] text-amber-700 mt-1">
+              กรุณาบันทึกเวลาการทำงานในหน้า Worklog ก่อนปิดงาน
+            </p>
+          </div>
+        </div>
+      </UiCard>
+
       <!-- Summary Card -->
       <UiCard class-name="p-4">
         <UiTextarea
@@ -18,6 +31,86 @@
           :rows="5"
           required
         />
+        <p v-if="elapsedSeconds > 0" class="text-[11px] text-slate-500 mt-2">
+          <Icon name="lucide:info" class="w-3 h-3 inline mr-1" />
+          บันทึกจาก worklog: {{ formattedWorkTime }}
+        </p>
+      </UiCard>
+
+      <!-- Cost & Time Card -->
+      <UiCard class-name="p-4">
+        <h3 class="text-[13px] font-bold text-slate-800 mb-3">ข้อมูลเวลาและค่าใช้จ่าย</h3>
+        
+        <div class="space-y-3">
+          <!-- Labor Hours (Auto-calculated from worklog) -->
+          <div>
+            <label class="block text-[12px] text-slate-600 mb-1">
+              เวลาการซ่อม (ชม.)
+            </label>
+            <div class="relative">
+              <input
+                :value="laborHours.toFixed(2)"
+                type="text"
+                disabled
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-[13px] bg-slate-50 text-slate-700 font-medium"
+              />
+              <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                <Icon name="lucide:clock" class="w-4 h-4 text-slate-400" />
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">
+              คำนวณจาก worklog: {{ formattedWorkTime }}
+            </p>
+          </div>
+
+          <!-- Downtime Hours -->
+          <div>
+            <label class="block text-[12px] text-slate-600 mb-1">
+              เวลาหยุดการซ่อม (ชม.) <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model.number="downtimeHours"
+              type="number"
+              step="0.1"
+              min="0"
+              placeholder="0.0"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00a6ff]"
+              required
+            />
+            <p class="text-[11px] text-slate-500 mt-1">เวลาที่เครื่องหยุดทำงาน</p>
+          </div>
+
+          <!-- Labor Cost -->
+          <div>
+            <label class="block text-[12px] text-slate-600 mb-1">
+              ค่าแรง (บาท)
+            </label>
+            <input
+              v-model.number="laborCost"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00a6ff]"
+            />
+          </div>
+
+          <!-- External Cost -->
+          <div>
+            <label class="block text-[12px] text-slate-600 mb-1">
+              ค่าใช้จ่ายภายนอก (บาท)
+            </label>
+            <input
+              v-model.number="externalCost"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00a6ff]"
+            />
+            <p class="text-[11px] text-slate-500 mt-1">เช่น ค่าจ้างภายนอก, ค่าขนส่ง</p>
+          </div>
+        </div>
       </UiCard>
 
       <!-- Photos Card -->
@@ -86,7 +179,7 @@
         variant="success"
         size="large"
         full-width
-        :disabled="!summary || !signature"
+        :disabled="!summary || !signature || !downtimeHours"
         @click="handleCompleteClick"
       >
         ยืนยันปิดงาน
@@ -182,6 +275,9 @@ const jobId = computed(() => route.params.id as string)
 const notificationId = ref<string>('')
 const assetName = ref<string>('กำลังโหลด...')
 const summary = ref('')
+const downtimeHours = ref<number>(0)
+const laborCost = ref<number>(0)
+const externalCost = ref<number>(0)
 const signature = ref<string | null>(null)
 const showConfirmModal = ref(false)
 const showPhotoOptions = ref(false)
@@ -189,6 +285,18 @@ const showCamera = ref(false)
 const galleryInputRef = ref<HTMLInputElement | null>(null)
 const elapsedSeconds = ref(0)
 const isLoadingJob = ref(true)
+
+const laborHours = computed(() => {
+  return Math.round((elapsedSeconds.value / 3600) * 100) / 100
+})
+
+const formattedWorkTime = computed(() => {
+  const hours = Math.floor(elapsedSeconds.value / 3600)
+  const minutes = Math.floor((elapsedSeconds.value % 3600) / 60)
+  const seconds = elapsedSeconds.value % 60
+  
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+})
 
 const { getJobDetail } = useTechnicianService()
 
@@ -221,6 +329,14 @@ onMounted(async () => {
     const data = JSON.parse(saved)
     summary.value = data.notes || ''
     elapsedSeconds.value = data.elapsedSeconds || 0
+    
+    console.log('Loaded worklog data:', {
+      notes: summary.value,
+      elapsedSeconds: elapsedSeconds.value,
+      laborHours: laborHours.value
+    })
+  } else {
+    console.warn('No worklog data found in localStorage')
   }
 })
 
@@ -288,14 +404,15 @@ const handleCompleteClick = () => {
 const handleConfirmComplete = async () => {
   showConfirmModal.value = false
 
-  const laborHours = Math.round((elapsedSeconds.value / 3600) * 10) / 10
-
   const closeoutData = {
     cm_history_id: Number(jobId.value),
     root_cause: summary.value,
     corrective_action: summary.value,
     preventive_recommendation: '',
-    labor_hours: laborHours,
+    downtime_hours: downtimeHours.value,
+    labor_hours: laborHours.value,
+    labor_cost: laborCost.value || undefined,
+    external_cost: externalCost.value || undefined,
     completion_date: new Date().toISOString(),
     completed_by: 'Current Technician', // Get from useAuth().user
     signature: signature.value || '',

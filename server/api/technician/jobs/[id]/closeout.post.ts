@@ -49,8 +49,17 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Calculate parts_cost from cm_parts_used
+    const partsResult = await queryOne<{ total_parts_cost: number | null }>(
+      `SELECT SUM(total_cost) as total_parts_cost 
+       FROM cm_parts_used 
+       WHERE cm_history_id = ?`,
+      [id]
+    )
+    const partsCost = partsResult?.total_parts_cost || 0
+
     // Calculate total cost
-    const totalCost = (body.labor_cost || 0) + (body.parts_cost || 0) + (body.external_cost || 0)
+    const totalCost = (body.labor_cost || 0) + partsCost + (body.external_cost || 0)
 
     // Convert completion_date to MySQL format (Thailand timezone)
     let completionDate = null
@@ -126,6 +135,7 @@ export default defineEventHandler(async (event) => {
        SET root_cause = ?,
            corrective_action = ?,
            preventive_recommendation = ?,
+           downtime_hours = ?,
            labor_hours = ?,
            labor_cost = ?,
            parts_cost = ?,
@@ -142,9 +152,10 @@ export default defineEventHandler(async (event) => {
         body.root_cause,
         body.corrective_action,
         body.preventive_recommendation || null,
+        body.downtime_hours || null,
         body.labor_hours || null,
         body.labor_cost || null,
-        body.parts_cost || null,
+        partsCost,
         body.external_cost || null,
         totalCost,
         completionDate,
