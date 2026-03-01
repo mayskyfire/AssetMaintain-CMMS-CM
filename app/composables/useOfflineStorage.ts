@@ -9,6 +9,7 @@ interface OfflineQueueItem {
   createdAt: string
   data: Record<string, any>
   photos?: string[] // base64 strings
+  signature?: string // base64 string for signature
   status: 'pending' | 'syncing' | 'failed'
   retryCount: number
 }

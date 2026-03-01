@@ -73,16 +73,32 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Assign technician
+    // Assign technician with supervisor approval
     await query(
       `UPDATE cm_history 
        SET technician_id = ?,
            supervisor_id = ?,
+           supervisor_approved = 1,
+           supervisor_approved_at = NOW(),
            start_time = NOW(),
            status = 'assigned',
            updated_at = NOW()
        WHERE id = ?`,
       [body.technician_id, body.supervisor_id || null, body.cm_history_id]
+    )
+
+    // Get technician name for timeline
+    const technicianInfo = await queryOne<{ full_name: string }>(
+      'SELECT full_name FROM users WHERE id = ?',
+      [body.technician_id]
+    )
+    const technicianName = technicianInfo?.full_name || 'ช่างเทคนิค'
+
+    // Add timeline event: มอบหมายช่างซ่อม
+    await query(
+      `INSERT INTO cm_timeline (cm_history_id, event, user, status, time)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [body.cm_history_id, 'มอบหมายช่างซ่อม', `มอบหมายให้: ${technicianName}`, 'completed']
     )
 
     return {

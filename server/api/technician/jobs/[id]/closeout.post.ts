@@ -59,6 +59,66 @@ export default defineEventHandler(async (event) => {
       completionDate = toThaiDatetime()
     }
 
+    // อัพโหลดลายเซ็นถ้ามี (base64 → Railway)
+    let signatureUrl = null
+    if (body.signature) {
+      try {
+        // แยก base64 data
+        const matches = body.signature.match(/^data:image\/(\w+);base64,(.+)$/)
+        if (matches) {
+          const imageType = matches[1]
+          const base64Data = matches[2]
+          const buffer = Buffer.from(base64Data, 'base64')
+
+          // สร้างชื่อไฟล์
+          const timestamp = Date.now()
+          const fileName = `signature-${timestamp}.${imageType}`
+          
+          // สร้าง subpath: /cm_history/{id}/signature
+          const subpath = `/cm_history/${id}/signature`
+
+          // ตรวจสอบ Railway upload URL
+          const railwayUploadUrl = process.env.UPLOAD_URL
+
+          if (railwayUploadUrl) {
+            // สร้าง FormData สำหรับอัพโหลดไป Railway
+            const FormData = (await import('formdata-node')).FormData
+            const { Blob } = await import('buffer')
+            
+            const uploadFormData = new FormData()
+            const blob = new Blob([new Uint8Array(buffer)], { 
+              type: `image/${imageType}` 
+            })
+            uploadFormData.append('file', blob, fileName)
+            uploadFormData.append('subpath', subpath)
+
+            // Upload to Railway
+            const response = await $fetch<{ 
+              ok: boolean
+              filename: string
+              url: string 
+            }>(railwayUploadUrl, {
+              method: 'POST',
+              body: uploadFormData
+            })
+
+            if (response.ok && response.url) {
+              // Extract path from Railway response URL
+              try {
+                const url = new URL(response.url)
+                signatureUrl = url.pathname // Get only the path part
+              } catch {
+                signatureUrl = response.url
+              }
+            }
+          }
+        }
+      } catch (signatureError) {
+        console.error('Failed to save signature:', signatureError)
+        // ไม่ throw error เพราะไม่อยากให้ signature ทำให้ closeout ล้มเหลว
+      }
+    }
+
     // Close job
     await query(
       `UPDATE cm_history 
@@ -72,6 +132,7 @@ export default defineEventHandler(async (event) => {
            total_cost = ?,
            completion_date = ?,
            completed_by = ?,
+           signature_url = ?,
            qr_scanned_end = NOW(),
            status = 'completed',
            updated_at = NOW()
@@ -87,6 +148,7 @@ export default defineEventHandler(async (event) => {
         totalCost,
         completionDate,
         body.completed_by || 'ช่าง',
+        signatureUrl,
         id
       ]
     )
@@ -117,6 +179,21 @@ export default defineEventHandler(async (event) => {
         )
       }
     }
+
+    // Update timeline: เริ่มดำเนินการซ่อม to completed status
+    await query(
+      `UPDATE cm_timeline 
+       SET status = 'completed'
+       WHERE cm_history_id = ? AND event = 'เริ่มดำเนินการซ่อม'`,
+      [id]
+    )
+
+    // Add timeline event: ปิดงานซ่อม
+    await query(
+      `INSERT INTO cm_timeline (cm_history_id, event, user, status, time)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [id, 'ปิดงานซ่อม', body.completed_by || 'ช่าง', 'completed']
+    )
 
     return {
       success: true,

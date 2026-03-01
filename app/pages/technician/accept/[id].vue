@@ -131,9 +131,9 @@ onMounted(async () => {
 const getPriorityLabel = (priority: string) => {
   const labels: Record<string, string> = {
     critical: 'เร่งด่วน',
-    high: 'สูง',
-    medium: 'ปานกลาง',
-    low: 'ต่ำ'
+    high: 'ด่วน',
+    medium: 'ปกติ',
+    low: 'ไม่ดวน'
   }
   return labels[priority] || priority
 }

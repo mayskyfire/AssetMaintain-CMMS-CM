@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
       problem_category: string | null
       problem_description: string
       priority: 'low' | 'medium' | 'high' | 'critical'
-      status: 'reported' | 'in_progress' | 'completed' | 'cancelled'
+      status: 'assigned' | 'in_progress' | 'completed' | 'cancelled'
       assigned_at: Date | null
       accepted_at: Date | null
     }>(
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
        WHERE cm.technician_id = ?
        ORDER BY 
          CASE cm.status
-           WHEN 'reported' THEN 1
+           WHEN 'assigned' THEN 1
            WHEN 'in_progress' THEN 2
            WHEN 'completed' THEN 3
          END,

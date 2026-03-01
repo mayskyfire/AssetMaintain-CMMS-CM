@@ -40,6 +40,7 @@ const navItems = computed<NavItem[]>(() => {
   
   if (props.role === 'supervisor') {
     return [
+      { path: '/supervisor/', icon: 'lucide:home', label: 'หน้าหลัก' },
       { path: '/supervisor/inbox', icon: 'lucide:menu', label: 'งานใหม่' },
       { path: '/supervisor/profile', icon: 'lucide:user', label: 'โปรไฟล์' }
     ]
@@ -47,6 +48,7 @@ const navItems = computed<NavItem[]>(() => {
   
   if (props.role === 'technician') {
     return [
+      { path: '/technician/', icon: 'lucide:home', label: 'หน้าหลัก' },
       { path: '/technician/jobs', icon: 'lucide:list', label: 'งานของฉัน' },
       { path: '/technician/profile', icon: 'lucide:user', label: 'โปรไฟล์' }
     ]

@@ -1,3 +1,8 @@
+/**
+ * GET /api/technician/jobs/:id
+ * Get job detail for technician
+ */
+
 export default defineEventHandler(async (event) => {
   try {
     const id = Number(getRouterParam(event, 'id'))
@@ -10,29 +15,43 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Query job detail
+    // Get job detail with asset info
     const job = await queryOne<{
       id: number
       notification_id: string
       asset_id: number
       asset_code: string
       asset_name: string
-      brand_model: string | null
       location: string
       breakdown_date: Date
       reported_date: Date
-      start_time: Date | null
       completion_date: Date | null
+      start_time: Date | null
       problem_category: string | null
       problem_description: string
       root_cause: string | null
       corrective_action: string | null
+      preventive_recommendation: string | null
       priority: 'low' | 'medium' | 'high' | 'critical'
       status: 'reported' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
+      requester_id: number
       requester_name: string
       technician_id: number | null
-      accepted_at: Date | null
-      notification_type: string | null
+      technician_name: string | null
+      supervisor_id: number | null
+      supervisor_name: string | null
+      assigned_at: Date
+      labor_hours: number | null
+      labor_cost: number | null
+      parts_cost: number | null
+      external_cost: number | null
+      total_cost: number | null
+      downtime_hours: number | null
+      satisfaction_rating: number | null
+      satisfaction_comment: string | null
+      evaluated_by: string | null
+      evaluated_at: Date | null
+      notes: string | null
     }>(
       `SELECT 
         cm.id,
@@ -40,26 +59,43 @@ export default defineEventHandler(async (event) => {
         cm.asset_id,
         a.asset_code,
         a.asset_name,
-        a.brand_model,
         a.location,
         cm.breakdown_date,
         cm.reported_date,
-        cm.start_time,
         cm.completion_date,
+        cm.start_time,
         cm.problem_category,
         cm.problem_description,
         cm.root_cause,
         cm.corrective_action,
+        cm.preventive_recommendation,
         cm.priority,
         cm.status,
-        u.full_name as requester_name,
+        cm.requester_id,
+        u1.full_name as requester_name,
         cm.technician_id,
-        cm.accepted_at,
-        cm.problem_category as notification_type
+        u2.full_name as technician_name,
+        cm.supervisor_id,
+        u3.full_name as supervisor_name,
+        cm.supervisor_approved_at AS assigned_at,
+        cm.labor_hours,
+        cm.labor_cost,
+        cm.parts_cost,
+        cm.external_cost,
+        cm.total_cost,
+        cm.downtime_hours,
+        cm.satisfaction_rating,
+        cm.satisfaction_comment,
+        cm.evaluated_by,
+        cm.evaluated_at,
+        cm.notes
        FROM cm_history cm
        INNER JOIN assets a ON cm.asset_id = a.id
-       INNER JOIN users u ON cm.requester_id = u.id
+       INNER JOIN users u1 ON cm.requester_id = u1.id
+       LEFT JOIN users u2 ON cm.technician_id = u2.id
+       LEFT JOIN users u3 ON cm.supervisor_id = u3.id
        WHERE cm.id = ?
+       ORDER BY cm.reported_date DESC
        LIMIT 1`,
       [id]
     )
@@ -83,11 +119,42 @@ export default defineEventHandler(async (event) => {
       [id]
     )
 
+    // Query parts used
+    const partsUsed = await query<{
+      id: number
+      part_name: string
+      part_no: string | null
+      quantity: number
+      unit: string
+      unit_cost: number | null
+      total_cost: number | null
+    }>(
+      'SELECT id, part_name, part_no, quantity, unit, unit_cost, total_cost FROM cm_parts_used WHERE cm_history_id = ?',
+      [id]
+    )
+
+    // Query timeline from cm_timeline table
+    const timeline = await query<{
+      id: number
+      event: string
+      user: string | null
+      status: string | null
+      time: Date
+    }>(
+      'SELECT id, event, user, status, time FROM cm_timeline WHERE cm_history_id = ? ORDER BY time ASC',
+      [id]
+    )
+
     return {
       success: true,
       data: {
         ...job,
-        evidence_images: evidenceImages
+        evidence_images: evidenceImages,
+        parts_used: partsUsed,
+        timeline: timeline.map(t => ({
+          ...t,
+          time: toThaiISOString(t.time)
+        }))
       }
     }
   } catch (error: any) {
@@ -100,7 +167,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal Server Error',
-      message: error.message || 'Failed to fetch job'
+      message: error.message || 'Failed to get job detail'
     })
   }
 })

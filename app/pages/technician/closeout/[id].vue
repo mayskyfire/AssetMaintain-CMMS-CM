@@ -5,8 +5,8 @@
     <div class="p-4 space-y-4 pb-24">
       <!-- Job Info Card -->
       <UiCard class-name="p-4 bg-blue-100">
-        <span class="text-[13px] font-bold text-[#00a6ff]">{{ jobId }}</span>
-        <h2 class="text-[14px] font-bold text-slate-800 mt-1">เครื่องปรับอากาศ AC-02</h2>
+        <span class="text-[13px] font-bold text-[#00a6ff]">{{ notificationId || jobId }}</span>
+        <h2 class="text-[14px] font-bold text-slate-800 mt-1">{{ assetName }}</h2>
       </UiCard>
 
       <!-- Summary Card -->
@@ -160,7 +160,7 @@
     <UiModal
       :is-open="showConfirmModal"
       title="ยืนยันปิดงาน"
-      :message="`คุณต้องการปิดงานซ่อม ${jobId} ใช่หรือไม่? งานที่ปิดแล้วจะไม่สามารถแก้ไขได้`"
+      :message="`คุณต้องการปิดงานซ่อม ${notificationId || jobId} ใช่หรือไม่? งานที่ปิดแล้วจะไม่สามารถแก้ไขได้`"
       confirm-text="ยืนยันปิดงาน"
       cancel-text="ยกเลิก"
       confirm-variant="success"
@@ -179,6 +179,8 @@ const route = useRoute()
 const router = useRouter()
 
 const jobId = computed(() => route.params.id as string)
+const notificationId = ref<string>('')
+const assetName = ref<string>('กำลังโหลด...')
 const summary = ref('')
 const signature = ref<string | null>(null)
 const showConfirmModal = ref(false)
@@ -186,9 +188,34 @@ const showPhotoOptions = ref(false)
 const showCamera = ref(false)
 const galleryInputRef = ref<HTMLInputElement | null>(null)
 const elapsedSeconds = ref(0)
+const isLoadingJob = ref(true)
+
+const { getJobDetail } = useTechnicianService()
+
+// Load job details
+const loadJobDetails = async () => {
+  try {
+    isLoadingJob.value = true
+    
+    const response = await getJobDetail(Number(jobId.value))
+    
+    if (response.success && response.data) {
+      notificationId.value = response.data.notification_id || `CM-${jobId.value}`
+      assetName.value = response.data.asset_name || 'ไม่ระบุ'
+    }
+  } catch (error) {
+    console.error('Failed to load job details:', error)
+    notificationId.value = `CM-${jobId.value}`
+    assetName.value = 'ไม่สามารถโหลดข้อมูลได้'
+  } finally {
+    isLoadingJob.value = false
+  }
+}
 
 // Load worklog data from localStorage
-onMounted(() => {
+onMounted(async () => {
+  await loadJobDetails()
+  
   const saved = localStorage.getItem(`worklog_${jobId.value}`)
   if (saved) {
     const data = JSON.parse(saved)
@@ -282,7 +309,8 @@ const handleConfirmComplete = async () => {
       title: `ปิดงาน: ${jobId.value}`,
       description: summary.value.slice(0, 100),
       data: closeoutData,
-      photos: photos.value.map(p => p.preview)
+      photos: photos.value.map(p => p.preview),
+      signature: signature.value || undefined
     })
     showSuccess('บันทึกลงคิวออฟไลน์แล้ว')
     // Clear localStorage
@@ -313,7 +341,11 @@ const handleConfirmComplete = async () => {
     // Update closeout data with uploaded photo URLs
     closeoutData.photos = uploadedPhotoUrls
     
+    // Closeout job (signature จะถูกอัพโหลดใน API)
     await closeoutJob(Number(jobId.value), closeoutData)
+    
+    showSuccess('ปิดงานสำเร็จ')
+    
     // Clear localStorage
     localStorage.removeItem(`worklog_${jobId.value}`)
     setTimeout(() => {
@@ -321,6 +353,7 @@ const handleConfirmComplete = async () => {
     }, 1000)
   } catch (error) {
     console.error('Failed to closeout job:', error)
+    showError('ไม่สามารถปิดงานได้ กรุณาลองใหม่อีกครั้ง')
   }
 }
 </script>

@@ -89,6 +89,20 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    // Get requester name for timeline
+    const requester = await queryOne<{ full_name: string }>(
+      'SELECT full_name FROM users WHERE id = ?',
+      [requesterId]
+    )
+    const requesterName = requester?.full_name || 'ผู้แจ้ง'
+
+    // Add timeline event: สร้างใบแจ้งซ่อม
+    await pool.query(
+      `INSERT INTO cm_timeline (cm_history_id, event, user, status, time)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [insertId, 'สร้างใบแจ้งซ่อม', requesterName, 'completed']
+    )
+
     // Get the created notification
     const notification = await queryOne<{
       id: number

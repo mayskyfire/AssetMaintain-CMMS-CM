@@ -123,48 +123,17 @@ export default defineEventHandler(async (event) => {
       [id]
     )
 
-    // Build timeline (convert dates to Thailand timezone)
-    const timeline = []
-    
-    if (notification.reported_date) {
-      timeline.push({
-        id: 1,
-        event: 'แจ้งซ่อม',
-        time: toThaiISOString(notification.reported_date),
-        user: notification.requester_name,
-        status: 'completed'
-      })
-    }
-
-    if (notification.technician_id && notification.start_time) {
-      timeline.push({
-        id: 2,
-        event: 'มอบหมายช่าง',
-        time: toThaiISOString(notification.start_time),
-        user: notification.supervisor_name || 'ระบบ',
-        status: 'completed'
-      })
-    }
-
-    if (notification.completion_date) {
-      timeline.push({
-        id: 3,
-        event: 'ปิดงาน',
-        time: toThaiISOString(notification.completion_date),
-        user: notification.technician_name || 'ช่าง',
-        status: 'completed'
-      })
-    }
-
-    if (notification.evaluated_at) {
-      timeline.push({
-        id: 4,
-        event: 'ประเมินผล',
-        time: toThaiISOString(notification.evaluated_at),
-        user: notification.evaluated_by || notification.requester_name,
-        status: 'completed'
-      })
-    }
+    // Query timeline from cm_timeline table
+    const timeline = await query<{
+      id: number
+      event: string
+      user: string | null
+      status: string | null
+      time: Date
+    }>(
+      'SELECT id, event, user, status, time FROM cm_timeline WHERE cm_history_id = ? ORDER BY time ASC',
+      [id]
+    )
 
     return {
       success: true,
@@ -172,7 +141,10 @@ export default defineEventHandler(async (event) => {
         ...notification,
         evidence_images: evidenceImages,
         parts_used: partsUsed,
-        timeline
+        timeline: timeline.map(t => ({
+          ...t,
+          time: toThaiISOString(t.time)
+        }))
       }
     }
   } catch (error: any) {

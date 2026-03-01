@@ -83,6 +83,7 @@ const { success: showSuccess, error: showError } = useToast()
 const { createNotification } = useNotificationService()
 const { isOnline } = useNetworkStatus()
 const { saveDraft, getDraft, removeDraft, addToQueue } = useOfflineStorage()
+const { user } = useAuth()
 
 const submitting = ref(false)
 
@@ -190,7 +191,8 @@ const handleSubmit = async () => {
       problem_description: formData.value.problem_description,
       priority: formData.value.priority,
       problem_category: formData.value.problem_category || undefined,
-      photos: formData.value.photos
+      photos: formData.value.photos,
+      requester_id: user.value?.id || 1
     })
 
     await removeDraft(draftKey)

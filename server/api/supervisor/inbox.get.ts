@@ -3,10 +3,11 @@ export default defineEventHandler(async (event) => {
     // Get query parameters
     const queryParams = getQuery(event)
     const page = parseInt(queryParams.page as string) || 1
-    const limit = parseInt(queryParams.limit as string) || 20
+    const limit = parseInt(queryParams.limit as string) || 50
     const offset = (page - 1) * limit
 
-    // Query pending notifications (reported status, not assigned to technician)
+    // Query all notifications (reported, assigned, in_progress)
+    // Exclude completed and cancelled
     const notifications = await query<{
       id: number
       notification_id: string
@@ -22,6 +23,8 @@ export default defineEventHandler(async (event) => {
       status: string
       requester_id: number
       requester_name: string
+      technician_id: number | null
+      technician_name: string | null
     }>(
       `SELECT 
         cm.id,
@@ -37,11 +40,14 @@ export default defineEventHandler(async (event) => {
         cm.priority,
         cm.status,
         cm.requester_id,
-        u.full_name as requester_name
+        u1.full_name as requester_name,
+        cm.technician_id,
+        u2.full_name as technician_name
        FROM cm_history cm
        INNER JOIN assets a ON cm.asset_id = a.id
-       INNER JOIN users u ON cm.requester_id = u.id
-       WHERE cm.status = 'reported' AND cm.technician_id IS NULL
+       INNER JOIN users u1 ON cm.requester_id = u1.id
+       LEFT JOIN users u2 ON cm.technician_id = u2.id
+       WHERE cm.status IN ('reported', 'assigned', 'in_progress')
        ORDER BY 
          CASE cm.priority
            WHEN 'critical' THEN 1
@@ -58,7 +64,7 @@ export default defineEventHandler(async (event) => {
     const [countResult] = await query<{ total: number }>(
       `SELECT COUNT(*) as total 
        FROM cm_history 
-       WHERE status = 'reported' AND technician_id IS NULL`
+       WHERE status IN ('reported', 'assigned', 'in_progress')`
     )
 
     const total = countResult?.total || 0

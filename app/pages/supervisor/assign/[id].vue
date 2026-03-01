@@ -7,16 +7,73 @@
     <div v-else class="p-4 space-y-4 pb-24">
       <!-- Job Info Card -->
       <UiCard v-if="currentNotification" class-name="p-4">
-        <h3 class="text-[13px] font-bold text-slate-800 mb-2">เลขที่ใบแจ้ง</h3>
-        <p class="text-[16px] font-bold text-[#00a6ff]">{{ currentNotification.notification_id }}</p>
-        <p class="text-[14px] font-bold text-slate-800 mt-2">{{ currentNotification.asset_name }}</p>
-        <p class="text-[12px] text-slate-500 mt-1">{{ currentNotification.problem_description }}</p>
-        <div class="flex items-center gap-2 mt-2">
+        <div class="flex items-start justify-between mb-3">
+          <span class="text-[16px] font-bold text-[#00a6ff]">{{ currentNotification.notification_id }}</span>
+          <UiBadge
+            :label="getStatusLabel(currentNotification.status)"
+            :variant="getStatusVariant(currentNotification.status)"
+            :show-dot="true"
+          />
+        </div>
+
+        <h2 class="text-[18px] font-bold text-slate-800 mb-3">
+          {{ currentNotification.asset_name }}
+        </h2>
+
+        <div class="space-y-2 mb-4">
+          <div class="flex items-start gap-2">
+            <Icon name="lucide:map-pin" size="16" class="text-slate-500 shrink-0 mt-0.5" />
+            <span class="text-[13px] text-slate-500">{{ currentNotification.location }}</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <Icon name="lucide:clock" size="16" class="text-slate-500 shrink-0 mt-0.5" />
+            <span class="text-[13px] text-slate-500">
+              แจ้งเมื่อ: {{ formatDate(currentNotification.breakdown_date) }}
+            </span>
+          </div>
+          <div v-if="currentNotification.requester_name" class="flex items-start gap-2">
+            <Icon name="lucide:user-check" size="16" class="text-slate-500 shrink-0 mt-0.5" />
+            <span class="text-[13px] text-slate-500">
+              ผู้แจ้ง: {{ currentNotification.requester_name }}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
           <UiBadge
             :label="`Priority: ${currentNotification.priority}`"
             :variant="currentNotification.priority === 'critical' || currentNotification.priority === 'high' ? 'danger' : 'primary'"
             size="small"
           />
+          <UiBadge
+            v-if="currentNotification.problem_category"
+            :label="currentNotification.problem_category"
+            variant="secondary"
+            size="small"
+          />
+        </div>
+      </UiCard>
+
+      <!-- Description -->
+      <UiCard v-if="currentNotification" class-name="p-4">
+        <h3 class="text-[13px] font-bold text-slate-800 mb-2">รายละเอียดปัญหา</h3>
+        <p class="text-[13px] text-slate-600">{{ currentNotification.problem_description }}</p>
+      </UiCard>
+
+      <!-- Evidence Images -->
+      <UiCard v-if="currentNotification?.evidence_images && currentNotification.evidence_images.length > 0" class-name="p-4">
+        <h3 class="text-[13px] font-bold text-slate-800 mb-3">รูปภาพหลักฐาน</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <div
+            v-for="img in currentNotification.evidence_images"
+            :key="img.id"
+            class="relative aspect-square rounded-[8px] overflow-hidden bg-slate-100"
+          >
+            <img :src="getImageUrl(img.url)" :alt="img.caption || 'Evidence'" class="w-full h-full object-cover" />
+            <div v-if="img.caption" class="absolute bottom-0 left-0 right-0 bg-black/50 p-2">
+              <p class="text-[11px] text-white">{{ img.caption }}</p>
+            </div>
+          </div>
         </div>
       </UiCard>
 
@@ -101,6 +158,7 @@ const { technicians, loading } = useSupervisorState()
 const { getNotificationDetail } = useNotificationService()
 const { currentNotification } = useNotificationState()
 const { user } = useAuth()
+const { getImageUrl } = useImageUrl()
 
 const jobId = Number(route.params.id)
 const selectedTechId = ref<number | null>(null)
@@ -165,5 +223,41 @@ const formatRating = (rating: any) => {
   if (!rating) return 'N/A'
   const num = typeof rating === 'string' ? parseFloat(rating) : rating
   return isNaN(num) ? 'N/A' : num.toFixed(1)
+}
+
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    reported: 'รอมอบหมายงาน',
+    pending: 'รอดำเนินการ',
+    assigned: 'รอการซ่อม',
+    in_progress: 'กำลังซ่อม',
+    completed: 'เสร็จสิ้น',
+    evaluated: 'เสร็จสิ้น'
+  }
+  return labels[status] || status
+}
+
+const getStatusVariant = (status: string) => {
+  const variants: Record<string, any> = {
+    reported: 'warning',
+    pending: 'warning',
+    assigned: 'primary',
+    in_progress: 'primary',
+    completed: 'success',
+    evaluated: 'success'
+  }
+  return variants[status] || 'secondary'
+}
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 </script>

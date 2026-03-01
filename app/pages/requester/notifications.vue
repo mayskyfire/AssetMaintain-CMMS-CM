@@ -32,7 +32,7 @@
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
             filterStatus === 'pending'
-              ? 'bg-[#fef3c6] text-[#bb4d00] border-2 border-[#fe9a00]'
+              ? 'bg-[#fef3c6] text-[#bb4d00] border border-[#fe9a00]'
               : 'bg-white text-slate-500 border border-slate-200'
           ]"
         >
@@ -43,7 +43,7 @@
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
             filterStatus === 'in_progress'
-              ? 'bg-[#dbeafe] text-[#1447e6] border-2 border-[#2b7fff]'
+              ? 'bg-[#dbeafe] text-[#1447e6] border border-[#2b7fff]'
               : 'bg-white text-slate-500 border border-slate-200'
           ]"
         >
@@ -54,7 +54,7 @@
           :class="[
             'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
             filterStatus === 'completed'
-              ? 'bg-[rgba(109,212,0,0.1)] text-[#6dd400] border-2 border-[#6dd400]'
+              ? 'bg-[rgba(109,212,0,0.1)] text-[#6dd400] border border-[#6dd400]'
               : 'bg-white text-slate-500 border border-slate-200'
           ]"
         >
@@ -94,10 +94,10 @@
 
           <div class="flex items-center justify-between">
             <UiBadge
-              :label="`Priority: ${notif.priority}`"
-              :variant="notif.priority === 'critical' || notif.priority === 'high' ? 'danger' : 'primary'"
-              size="small"
-            />
+                :label="`Priority: ${getPriorityLabel(notif.priority)}`"
+                :variant="getPriorityVariant(notif.priority)"
+                size="small"
+              />
             <span class="text-[11px] text-slate-500">{{ formatDate(notif.breakdown_date) }}</span>
           </div>
         </UiCard>
@@ -199,5 +199,25 @@ const formatDate = (dateString: string) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+const getPriorityLabel = (priority: string) => {
+  const labels: Record<string, string> = {
+    critical: 'เร่งด่วน',
+    high: 'ด่วน',
+    medium: 'ปกติ',
+    low: 'ไม่ดวน'
+  }
+  return labels[priority] || priority
+}
+
+const getPriorityVariant = (priority: string) => {
+  const variants: Record<string, any> = {
+    critical: 'danger',
+    high: 'warning',
+    medium: 'primary',
+    low: 'secondary'
+  }
+  return variants[priority] || 'secondary'
 }
 </script>

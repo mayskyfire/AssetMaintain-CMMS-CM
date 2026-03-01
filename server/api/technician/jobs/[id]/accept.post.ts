@@ -66,6 +66,13 @@ export default defineEventHandler(async (event) => {
       [body.accepted_by || 'ช่าง', qrScannedStart, id]
     )
 
+    // Add timeline event: เริ่มดำเนินการซ่อม
+    await query(
+      `INSERT INTO cm_timeline (cm_history_id, event, user, status, time)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [id, 'เริ่มดำเนินการซ่อม', body.accepted_by || 'ช่าง', 'in_progress']
+    )
+
     return {
       success: true,
       message: 'Job accepted successfully'

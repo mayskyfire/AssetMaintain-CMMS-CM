@@ -109,6 +109,10 @@ export interface CMHistory extends BaseEntity {
   accepted_by: string | null
   accepted_at: string | null
   completed_by: string | null
+  signature_url: string | null
+  qr_scanned_start: string | null
+  qr_scanned_end: string | null
+  completed_by: string | null
   qr_scanned_start: string | null
   qr_scanned_end: string | null
   requester_id: number | null
