@@ -73,10 +73,8 @@ export function useApi() {
     
     // For GET requests when offline, try to read from cache
     if (!isOnline.value && method === 'GET') {
-      console.log('[useApi] Offline - attempting to read from cache:', cacheKey)
       const cached = await getCache<ApiResponse<T>>(cacheKey)
       if (cached) {
-        console.log('[useApi] Cache hit (offline):', cacheKey)
         return cached
       }
       // No cache available
@@ -90,8 +88,6 @@ export function useApi() {
 
     // For write operations (POST/PUT/PATCH/DELETE) when offline, add to queue
     if (!isOnline.value && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-      console.log('[useApi] Offline - adding to queue:', method, endpoint)
-      
       // Parse body if it's a string
       let bodyData = fetchOptions.body
       if (typeof bodyData === 'string') {
@@ -154,13 +150,11 @@ export function useApi() {
 
       // Cache successful GET responses
       if (method === 'GET' && !skipCache && response.ok) {
-        console.log('[useApi] Caching response:', cacheKey, `(TTL: ${cacheTTL}m)`)
         await setCache(cacheKey, apiResponse, cacheTTL)
       }
 
       return apiResponse
     } catch (error: any) {
-      console.error('[useApi] Fetch error:', error)
       
       // If it's already an ApiError, throw it
       if (error.success === false) {
@@ -169,10 +163,8 @@ export function useApi() {
 
       // Network error - try cache for GET requests
       if (method === 'GET') {
-        console.log('[useApi] Network error - attempting cache fallback:', cacheKey)
         const cached = await getCache<ApiResponse<T>>(cacheKey)
         if (cached) {
-          console.log('[useApi] Cache hit (fallback):', cacheKey)
           return cached
         }
       }
