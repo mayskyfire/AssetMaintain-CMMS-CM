@@ -1,5 +1,6 @@
 export const useAppLoader = () => {
-  const isLoading = useState('app-loader-loading', () => true)
+  // Always start with false - no loader on initial load
+  const isLoading = useState('app-loader-loading', () => false)
   const progress = useState('app-loader-progress', () => 0)
   const loadingText = useState('app-loader-text', () => 'กำลังโหลด...')
 
