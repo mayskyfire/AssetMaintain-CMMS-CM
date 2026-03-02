@@ -4,7 +4,8 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   devServer: {
-    port: 3002
+    port: 3002,
+    host: '0.0.0.0' // Allow access from mobile devices on same network
   },
 
   runtimeConfig: {
