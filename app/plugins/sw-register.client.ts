@@ -1,28 +1,29 @@
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(() => {
+  // Don't await - run in background so it doesn't block app startup
   if (!('serviceWorker' in navigator)) return
 
-  // Wait for SW to be ready (registered by @vite-pwa/nuxt)
-  try {
-    const registration = await navigator.serviceWorker.ready
+  // Use setTimeout to not block Vue mounting
+  setTimeout(async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready
 
-    // Listen for messages from SW (offline queue sync trigger)
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'SYNC_OFFLINE_QUEUE') {
-        window.dispatchEvent(new CustomEvent('app:back-online'))
-      }
-    })
-
-    // Register background sync if supported
-    if ('sync' in registration) {
-      window.addEventListener('app:back-online', async () => {
-        try {
-          await (registration as any).sync.register('offline-queue-sync')
-        } catch {
-          // Background sync not supported, handled by composable
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'SYNC_OFFLINE_QUEUE') {
+          window.dispatchEvent(new CustomEvent('app:back-online'))
         }
       })
+
+      if ('sync' in registration) {
+        window.addEventListener('app:back-online', async () => {
+          try {
+            await (registration as any).sync.register('offline-queue-sync')
+          } catch {
+            // Background sync not supported
+          }
+        })
+      }
+    } catch (err) {
+      console.warn('[SW] Registration failed:', err)
     }
-  } catch (err) {
-    console.error('[SW] Ready failed:', err)
-  }
+  }, 0)
 })
