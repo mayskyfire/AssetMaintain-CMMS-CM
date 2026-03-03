@@ -77,10 +77,18 @@
           v-if="!error"
           class="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/80 to-transparent p-6 pb-8"
         >
-          <div class="flex items-center justify-center gap-6">
+          <div class="flex items-center justify-between">
+            <!-- Gallery Button (when not captured) -->
+            <button
+              v-if="!isCaptured"
+              @click="openGallery"
+              class="w-14 h-14 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm active:bg-white/30 transition-colors"
+            >
+              <Icon name="lucide:image" class="w-6 h-6 text-white" />
+            </button>
             <!-- Retake Button (when captured) -->
             <button
-              v-if="isCaptured"
+              v-else
               @click="retake"
               class="w-14 h-14 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm active:bg-white/30 transition-colors"
             >
@@ -102,15 +110,7 @@
               <Icon name="lucide:check" class="w-8 h-8 text-white" />
             </button>
 
-            <!-- Gallery Button (when not captured) -->
-            <button
-              v-if="!isCaptured"
-              @click="openGallery"
-              class="w-14 h-14 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm active:bg-white/30 transition-colors"
-            >
-              <Icon name="lucide:image" class="w-6 h-6 text-white" />
-            </button>
-            <div v-else class="w-14" />
+            <div class="w-14" />
           </div>
 
           <p class="text-center text-white/80 text-[12px] mt-4">
