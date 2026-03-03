@@ -26,14 +26,13 @@
         </div>
 
         <!-- Scanner View -->
-        <div class="relative w-full h-full flex items-center justify-center">
+        <div class="relative w-full h-full">
           <!-- Scanner Container -->
           <div id="qr-reader" class="w-full h-full" />
 
           <!-- Scanning Frame Overlay -->
           <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute inset-0 bg-black/50" />
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72">
               <!-- Transparent center -->
               <div class="absolute inset-0 border-2 border-white rounded-2xl shadow-lg" />
               <!-- Corner indicators -->
@@ -165,13 +164,21 @@ const startScanner = async () => {
       cameraId,
       {
         fps: 10,
-        qrbox: { width: 250, height: 250 },
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          // Make qrbox responsive - 80% of the smaller dimension
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight)
+          const qrboxSize = Math.floor(minEdge * 0.8)
+          return {
+            width: qrboxSize,
+            height: qrboxSize
+          }
+        },
         aspectRatio: 1.0,
         disableFlip: false,
         videoConstraints: {
           facingMode: backCamera ? 'environment' : 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
         }
       },
       (decodedText) => {
@@ -225,17 +232,30 @@ const toggleFlash = async () => {
   if (!html5QrCode) return
   
   try {
-    const track = html5QrCode.getRunningTrackCameraCapabilities()
-    // @ts-ignore - torch is not in standard types but supported by many devices
-    if (track && track.torch) {
-      isFlashOn.value = !isFlashOn.value
-      // @ts-ignore
-      await track.applyConstraints({
-        advanced: [{ torch: isFlashOn.value }]
-      })
+    // Get the video element
+    const videoElement = document.querySelector('#qr-reader video') as HTMLVideoElement
+    if (!videoElement || !videoElement.srcObject) return
+
+    const stream = videoElement.srcObject as MediaStream
+    const track = stream.getVideoTracks()[0]
+    
+    if (!track) return
+
+    // Check if torch is supported
+    const capabilities = track.getCapabilities() as any
+    if (!capabilities.torch) {
+      console.log('Flash not supported on this device')
+      return
     }
+
+    // Toggle flash
+    isFlashOn.value = !isFlashOn.value
+    await track.applyConstraints({
+      advanced: [{ torch: isFlashOn.value } as any]
+    })
   } catch (err) {
     console.error('Flash toggle error:', err)
+    isFlashOn.value = false
   }
 }
 
@@ -257,6 +277,33 @@ const handleClose = () => {
   height: 100%;
 }
 
+/* Make video fill the entire screen */
+:deep(#qr-reader video) {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+/* Hide the shaded region background */
+:deep(#qr-shaded-region) {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Make the scan region full screen */
+:deep(#qr-reader__scan_region) {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
 /* Hide default html5-qrcode UI elements */
 :deep(#qr-reader__dashboard_section) {
   display: none !important;
@@ -266,8 +313,16 @@ const handleClose = () => {
   display: none !important;
 }
 
-:deep(#qr-reader__scan_region) {
-  border: none !important;
+:deep(#qr-reader__header_message) {
+  display: none !important;
+}
+
+:deep(#qr-reader__camera_selection) {
+  display: none !important;
+}
+
+:deep(#qr-reader__camera_permission_button) {
+  display: none !important;
 }
 
 .scanner-enter-active,
