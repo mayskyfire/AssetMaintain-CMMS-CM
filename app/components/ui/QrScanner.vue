@@ -110,9 +110,13 @@ const isFlashOn = ref(false)
 let html5QrCode: Html5Qrcode | null = null
 
 // Start scanner when opened
-watch(() => props.isOpen, (isOpen) => {
+watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
-    startScanner()
+    // Small delay to ensure DOM is ready
+    await nextTick()
+    setTimeout(() => {
+      startScanner()
+    }, 100)
   } else {
     stopScanner()
   }
@@ -129,30 +133,46 @@ const startScanner = async () => {
     loadingMessage.value = 'กำลังเปิดกล้อง...'
     error.value = ''
 
+    // Wait for DOM to be ready
+    await nextTick()
+
     // Initialize scanner
     html5QrCode = new Html5Qrcode('qr-reader')
 
-    // Get cameras
+    // Request camera permission first
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true })
+    } catch (permErr) {
+      throw permErr
+    }
+
+    // Get cameras after permission granted
     const devices = await Html5Qrcode.getCameras()
     if (!devices || devices.length === 0) {
       throw new Error('ไม่พบกล้องในอุปกรณ์นี้')
     }
 
-    // Prefer back camera
+    // Prefer back camera for mobile, any camera for desktop
     const backCamera = devices.find(device => 
       (device.label || '').toLowerCase().includes('back') || 
       (device.label || '').toLowerCase().includes('rear') ||
       (device.label || '').toLowerCase().includes('environment')
     )
-    const cameraId = backCamera?.id || devices[0].id
+    const cameraId = backCamera?.id || devices[devices.length - 1].id
 
-    // Start scanning
+    // Start scanning with optimized config for web browsers
     await html5QrCode.start(
       cameraId,
       {
         fps: 10,
         qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0
+        aspectRatio: 1.0,
+        disableFlip: false,
+        videoConstraints: {
+          facingMode: backCamera ? 'environment' : 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
       },
       (decodedText) => {
         // Success callback
@@ -175,9 +195,13 @@ const startScanner = async () => {
         error.value = 'ไม่พบกล้องในอุปกรณ์นี้'
       } else if (err.name === 'NotReadableError') {
         error.value = 'กล้องกำลังถูกใช้งานโดยแอปพลิเคชันอื่น'
+      } else if (err.name === 'OverconstrainedError') {
+        error.value = 'การตั้งค่ากล้องไม่รองรับ กรุณาลองอีกครั้ง'
       } else {
         error.value = err.message || 'ไม่สามารถเปิดกล้องได้ กรุณาลองอีกครั้ง'
       }
+    } else {
+      error.value = 'ไม่สามารถเปิดกล้องได้ กรุณาลองอีกครั้ง'
     }
   }
 }
