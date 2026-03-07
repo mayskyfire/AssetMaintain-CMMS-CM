@@ -131,6 +131,24 @@ export function useApi() {
 
       if (!response.ok) {
         console.error('[useApi] Error response:', data)
+
+        // Token expired or unauthorized — auto logout & redirect to login
+        if (response.status === 401) {
+          if (import.meta.client) {
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('user_info')
+            if (window.location.pathname !== '/') {
+              window.location.href = '/'
+            }
+          }
+          throw {
+            success: false,
+            error: 'Unauthorized',
+            message: 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่',
+            statusCode: 401
+          } as ApiError
+        }
+
         throw {
           success: false,
           error: data.error || 'Request failed',

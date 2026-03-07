@@ -117,6 +117,9 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     console.error('Get notifications error:', error)
     
+    // Re-throw H3/createError errors (e.g. 401) as-is
+    if (error.statusCode) throw error
+
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal Server Error',

@@ -69,6 +69,12 @@ export const useSSE = () => {
           eventSource = null
         }
 
+        // If token was cleared (auto-logout from 401), stop reconnecting
+        if (process.client && !localStorage.getItem('auth_token')) {
+          console.log('🔒 Token removed, stopping SSE reconnect')
+          return
+        }
+
         // Auto reconnect with exponential backoff
         if (reconnectAttempts.value < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.value), 30000)

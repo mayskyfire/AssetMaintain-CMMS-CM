@@ -86,6 +86,8 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     console.error('Get supervisor stats error:', error)
     
+    if (error.statusCode) throw error
+
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal Server Error',
