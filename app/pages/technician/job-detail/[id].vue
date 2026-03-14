@@ -177,7 +177,7 @@
       </UiCard>
 
       <!-- Parts Used -->
-      <UiCard v-if="currentJob.parts_used && currentJob.parts_used.length > 0" class-name="p-4">
+      <!-- <UiCard v-if="currentJob.parts_used && currentJob.parts_used.length > 0" class-name="p-4">
         <h3 class="text-[13px] font-bold text-slate-800 mb-3">อะไหล่ที่ใช้</h3>
         <div class="space-y-2">
           <div
@@ -195,7 +195,7 @@
             </div>
           </div>
         </div>
-      </UiCard>
+      </UiCard> -->
 
       <!-- Timeline -->
       <UiCard class-name="p-4">

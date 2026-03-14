@@ -83,12 +83,34 @@ export default defineEventHandler(async (event) => {
       [id]
     )
 
-    console.log('CM Data for evaluation notification:', cmData)
+    // ดึงช่างทุกคนที่ได้รับมอบหมายงานนี้ (จาก cm_technician_assignments)
+    const assignedTechnicians = await query<{ technician_id: number }>(
+      `SELECT technician_id FROM cm_technician_assignments WHERE cm_history_id = ?`,
+      [id]
+    )
 
-    // Send evaluation notification to technician
+    console.log('CM Data for evaluation notification:', cmData)
+    console.log('Assigned technicians:', assignedTechnicians)
+
+    // Send evaluation notification to all assigned technicians
     try {
-      if (cmData?.technician_id) {
-        console.log('Sending evaluation notification to technician:', cmData.technician_id)
+      if (assignedTechnicians && assignedTechnicians.length > 0) {
+        for (const tech of assignedTechnicians) {
+          console.log('Sending evaluation notification to technician:', tech.technician_id)
+          await notifyCMEvaluation(
+            id,
+            tech.technician_id,
+            body.satisfaction_rating,
+            {
+              notification_id: cmData?.notification_id,
+              satisfaction_comment: body.satisfaction_comment
+            }
+          )
+        }
+        console.log('Evaluation notifications sent successfully')
+      } else if (cmData?.technician_id) {
+        // Fallback: ถ้าไม่มีข้อมูลใน cm_technician_assignments ให้ส่งไปหา technician_id เดิม
+        console.log('Fallback: Sending evaluation notification to lead technician:', cmData.technician_id)
         await notifyCMEvaluation(
           id,
           cmData.technician_id,
@@ -100,7 +122,7 @@ export default defineEventHandler(async (event) => {
         )
         console.log('Evaluation notification sent successfully')
       } else {
-        console.warn('No technician_id found, cannot send evaluation notification')
+        console.warn('No technicians found, cannot send evaluation notification')
       }
     } catch (notifError) {
       console.error('Failed to send evaluation notification:', notifError)

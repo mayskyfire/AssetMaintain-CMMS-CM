@@ -114,9 +114,18 @@ const handleNotificationClick = async (notification: any) => {
     await markAsRead(notification.id)
   }
 
-  // Navigate to reference
+  // Navigate to reference based on user role
   if (notification.reference_type === 'cm_history' && notification.reference_id) {
-    navigateTo(`/cm/${notification.reference_id}`)
+    const { user } = useAuth()
+    const role = user.value?.role
+
+    if (role === 'requester') {
+      navigateTo(`/requester/job/${notification.reference_id}`)
+    } else if (role === 'technician') {
+      navigateTo(`/technician/job-detail/${notification.reference_id}`)
+    } else if (role === 'supervisor') {
+      navigateTo(`/supervisor/assign/${notification.reference_id}`)
+    }
   }
 
   closeDropdown()

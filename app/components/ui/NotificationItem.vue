@@ -1,5 +1,6 @@
 <template>
   <UiCard 
+    :clickable="true"
     :class-name="[
       'p-4 cursor-pointer transition-all active:scale-[0.98]',
       !notification.is_read ? 'bg-blue-50 border-l-4 border-[#00a6ff]' : 'bg-white'
