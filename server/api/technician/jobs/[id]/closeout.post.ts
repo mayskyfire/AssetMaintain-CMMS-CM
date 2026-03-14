@@ -165,6 +165,14 @@ export default defineEventHandler(async (event) => {
       ]
     )
 
+    // อัพเดท cm_technician_assignments ทุกคนเป็น completed
+    await query(
+      `UPDATE cm_technician_assignments 
+       SET status = 'completed', updated_at = NOW()
+       WHERE cm_history_id = ?`,
+      [id]
+    )
+
     // Insert after photos if provided
     if (body.photos && body.photos.length > 0) {
       for (const photo of body.photos) {

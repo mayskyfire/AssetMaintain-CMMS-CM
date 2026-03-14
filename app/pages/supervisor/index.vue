@@ -14,7 +14,7 @@
       </UiCard>
 
       <!-- Quick Actions -->
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-3 gap-3">
         <UiCard
           :clickable="true"
           class-name="p-4 flex flex-col items-center justify-center gap-3 hover:shadow-md transition-shadow"
@@ -25,6 +25,19 @@
           </div>
           <span class="text-[14px] font-bold text-slate-800 text-center">
             งานใหม่
+          </span>
+        </UiCard>
+
+        <UiCard
+          :clickable="true"
+          class-name="p-4 flex flex-col items-center justify-center gap-3 hover:shadow-md transition-shadow"
+          @click="router.push('/supervisor/spare-approvals')"
+        >
+          <div class="w-12 h-12 bg-[#fe9a00]/10 rounded-[12px] flex items-center justify-center">
+            <Icon name="lucide:clipboard-list" size="24" class="text-[#fe9a00]" />
+          </div>
+          <span class="text-[14px] font-bold text-slate-800 text-center">
+            อนุมัติอะไหล่
           </span>
         </UiCard>
 
@@ -43,17 +56,29 @@
       </div>
 
       <!-- Stats -->
-      <div class="grid grid-cols-4 gap-2">
+      <div class="grid grid-cols-3 gap-2">
         <UiCard 
           :clickable="true"
           class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
-          @click="router.push('/supervisor/inbox?status=reported')"
+          @click="router.push('/supervisor/inbox?status=ready')"
         >
           <div class="flex items-center gap-1 mb-2 min-h-[32px]">
-            <Icon name="lucide:clock" size="14" class="text-[#fe9a00] shrink-0" />
-            <span class="text-[10px] text-slate-500 leading-tight">รอมอบหมาย</span>
+            <Icon name="lucide:clock" size="14" class="text-[#00a6ff] shrink-0" />
+            <span class="text-[10px] text-slate-500 leading-tight">พร้อมมอบหมาย</span>
           </div>
-          <p class="text-[20px] font-bold text-slate-800 text-center mt-auto">{{ stats.pending }}</p>
+          <p class="text-[20px] font-bold text-slate-800 text-center mt-auto">{{ stats.ready }}</p>
+        </UiCard>
+
+        <UiCard 
+          :clickable="true"
+          class-name="p-3 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+          @click="router.push('/supervisor/spare-approvals')"
+        >
+          <div class="flex items-center gap-1 mb-2 min-h-[32px]">
+            <Icon name="lucide:clipboard-list" size="14" class="text-orange-500 shrink-0" />
+            <span class="text-[10px] text-slate-500 leading-tight">รออนุมัติ</span>
+          </div>
+          <p class="text-[20px] font-bold text-slate-800 text-center mt-auto">{{ stats.pendingSpare }}</p>
         </UiCard>
 
         <UiCard 
@@ -178,15 +203,16 @@ onMounted(async () => {
 // Stats
 const stats = computed(() => {
   if (!inbox.value || !Array.isArray(inbox.value)) {
-    return { pending: 0, assigned: 0, inProgress: 0, completed: 0 }
+    return { ready: 0, pendingSpare: 0, assigned: 0, inProgress: 0, completed: 0 }
   }
   
-  const pending = inbox.value.filter(j => j.status === 'reported' || j.status === 'pending').length
+  const ready = inbox.value.filter(j => j.status === 'reported' || j.status === 'spare_approved').length
+  const pendingSpare = inbox.value.filter(j => j.status === 'pending_spare_approval').length
   const assigned = inbox.value.filter(j => j.status === 'assigned').length
   const inProgress = inbox.value.filter(j => j.status === 'in_progress').length
   const completed = inbox.value.filter(j => j.status === 'completed').length
 
-  return { pending, assigned, inProgress, completed }
+  return { ready, pendingSpare, assigned, inProgress, completed }
 })
 
 // Recent jobs (latest 3)
@@ -199,8 +225,10 @@ const recentJobs = computed(() => {
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
-    reported: 'รอมอบหมาย',
-    pending: 'รอมอบหมาย',
+    reported: 'พร้อมมอบหมาย',
+    pending: 'พร้อมมอบหมาย',
+    pending_spare_approval: 'รออนุมัติอะไหล่',
+    spare_approved: 'พร้อมมอบหมาย',
     assigned: 'มอบหมายแล้ว',
     in_progress: 'กำลังซ่อม',
     completed: 'เสร็จสิ้น'
@@ -210,8 +238,10 @@ const getStatusLabel = (status: string) => {
 
 const getStatusVariant = (status: string) => {
   const variants: Record<string, any> = {
-    reported: 'warning',
-    pending: 'warning',
+    reported: 'primary',
+    pending: 'primary',
+    pending_spare_approval: 'warning',
+    spare_approved: 'primary',
     assigned: 'secondary',
     in_progress: 'primary',
     completed: 'success'
@@ -228,7 +258,7 @@ const formatDate = (dateString: string) => {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  })
+  }) + ` น.`
 }
 
 const getPriorityLabel = (priority: string) => {

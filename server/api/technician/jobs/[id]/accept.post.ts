@@ -14,6 +14,15 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Get authenticated user
+    const authHeader = getHeader(event, 'authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    let currentUserId: number | null = null
+    if (token) {
+      const decoded = verifyToken(token)
+      if (decoded) currentUserId = decoded.userId
+    }
+
     // Check if job exists and is assigned
     const job = await queryOne<{
       id: number
@@ -29,7 +38,7 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 404,
         statusMessage: 'Not Found',
-        message: 'Job not found'
+        message: 'ไม่พบงานนี้'
       })
     }
 
@@ -37,7 +46,7 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         statusMessage: 'Bad Request',
-        message: 'Job must be in assigned status to accept'
+        message: 'งานนี้ถูกรับแล้วหรือไม่อยู่ในสถานะรอรับงาน'
       })
     }
 
@@ -45,7 +54,25 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         statusMessage: 'Bad Request',
-        message: 'Job already accepted'
+        message: 'งานนี้ถูกรับแล้ว'
+      })
+    }
+
+    // ตรวจสอบว่ามีช่างคนอื่นรับงานนี้ไปแล้วหรือยัง (จาก cm_technician_assignments)
+    const alreadyAccepted = await queryOne<{ id: number, full_name: string }>(
+      `SELECT cta.id, u.full_name
+       FROM cm_technician_assignments cta
+       INNER JOIN users u ON cta.technician_id = u.id
+       WHERE cta.cm_history_id = ? AND cta.status IN ('accepted', 'in_progress')
+       LIMIT 1`,
+      [id]
+    )
+
+    if (alreadyAccepted) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Bad Request',
+        message: `ช่าง ${alreadyAccepted.full_name} รับงานนี้ไปแล้ว ไม่สามารถรับงานซ้อนได้`
       })
     }
 
@@ -55,7 +82,7 @@ export default defineEventHandler(async (event) => {
       qrScannedStart = toThaiDatetime(body.qr_scanned_start)
     }
 
-    // Accept job
+    // Accept job - update cm_history
     await query(
       `UPDATE cm_history 
        SET accepted_by = ?,
@@ -67,7 +94,17 @@ export default defineEventHandler(async (event) => {
       [body.accepted_by || 'ช่าง', qrScannedStart, id]
     )
 
-    // Add timeline event: เริ่มดำเนินการซ่อม
+    // Update cm_technician_assignments สำหรับช่างที่รับงาน
+    if (currentUserId) {
+      await query(
+        `UPDATE cm_technician_assignments 
+         SET status = 'in_progress', accepted_at = NOW(), updated_at = NOW()
+         WHERE cm_history_id = ? AND technician_id = ?`,
+        [id, currentUserId]
+      )
+    }
+
+    // Add timeline event
     await query(
       `INSERT INTO cm_timeline (cm_history_id, event, user, status, time)
        VALUES (?, ?, ?, ?, NOW())`,
@@ -82,20 +119,17 @@ export default defineEventHandler(async (event) => {
       technician_id: number
     }>(
       `SELECT notification_id, requester_id, supervisor_id, technician_id
-       FROM cm_history
-       WHERE id = ?`,
+       FROM cm_history WHERE id = ?`,
       [id]
     )
 
-    // Get technician name
     const technician = await queryOne<{ full_name: string }>(
       'SELECT full_name FROM users WHERE id = ?',
       [cmData?.technician_id]
     )
 
-    // Send notifications (accepted + in_progress)
+    // Send notifications
     try {
-      // First: accepted notification
       await notifyCMStatusChange(id, 'accepted', {
         notification_id: cmData?.notification_id,
         requester_id: cmData?.requester_id,
@@ -103,7 +137,6 @@ export default defineEventHandler(async (event) => {
         technician_name: technician?.full_name || body.accepted_by || 'ช่าง'
       })
 
-      // Then: in_progress notification
       await notifyCMStatusChange(id, 'in_progress', {
         notification_id: cmData?.notification_id,
         requester_id: cmData?.requester_id,
@@ -111,24 +144,20 @@ export default defineEventHandler(async (event) => {
       })
     } catch (notifError) {
       console.error('Failed to send accept/in_progress notifications:', notifError)
-      // Don't fail the request if notification fails
     }
 
     return {
       success: true,
-      message: 'Job accepted successfully'
+      message: 'รับงานสำเร็จ'
     }
   } catch (error: any) {
-    if (error.statusCode) {
-      throw error
-    }
+    if (error.statusCode) throw error
 
     console.error('Accept job error:', error)
-
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal Server Error',
-      message: error.message || 'Failed to accept job'
+      message: error.message || 'รับงานไม่สำเร็จ'
     })
   }
 })

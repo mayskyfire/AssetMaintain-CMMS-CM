@@ -61,6 +61,79 @@
         </div>
       </UiCard>
 
+      <!-- Spare Parts Request -->
+      <UiCard class-name="p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-[13px] font-bold text-slate-800">ขออะไหล่ (ถ้าต้องการ)</h3>
+          <button
+            v-if="spareParts.length === 0"
+            @click="addSparePart"
+            class="text-[12px] text-[#00a6ff] font-bold"
+          >
+            + เพิ่มอะไหล่
+          </button>
+        </div>
+
+        <div v-if="spareParts.length > 0" class="space-y-3">
+          <div v-for="(sp, index) in spareParts" :key="index" class="bg-slate-50 rounded-[8px] p-3 space-y-2">
+            <!-- Part search -->
+            <div class="relative">
+              <input
+                v-model="sp.searchText"
+                type="text"
+                placeholder="ค้นหาอะไหล่..."
+                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-[8px] text-[13px] focus:outline-none focus:ring-2 focus:ring-[#00a6ff]"
+                @focus="sp.showDropdown = true"
+                @input="filterSpareParts(index)"
+              />
+              <div
+                v-if="sp.showDropdown && sp.filteredParts.length > 0"
+                class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-[8px] shadow-lg max-h-[160px] overflow-y-auto"
+              >
+                <button
+                  v-for="pm in sp.filteredParts"
+                  :key="pm.id"
+                  type="button"
+                  class="w-full px-3 py-2 text-left hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                  @mousedown.prevent="selectSparePart(index, pm)"
+                >
+                  <p class="text-[12px] font-bold text-slate-800">{{ pm.part_name }}</p>
+                  <p class="text-[11px] text-slate-500">{{ pm.part_code || '-' }} | คงเหลือ: {{ pm.stock_quantity }}</p>
+                </button>
+              </div>
+            </div>
+            <!-- Selected info -->
+            <div v-if="sp.part_id" class="flex items-center justify-between bg-blue-50 rounded-[6px] px-2 py-1">
+              <span class="text-[11px] text-[#00a6ff]">{{ sp.part_name }}</span>
+              <button @click="clearSparePart(index)" class="text-slate-400 hover:text-red-500">
+                <Icon name="lucide:x" class="w-3 h-3" />
+              </button>
+            </div>
+            <!-- Quantity -->
+            <div class="flex items-center gap-2">
+              <label class="text-[11px] text-slate-600 shrink-0">จำนวน:</label>
+              <input
+                v-model.number="sp.quantity"
+                type="number"
+                min="1"
+                class="w-20 px-2 py-1 bg-white border border-slate-200 rounded-[6px] text-[13px] text-center"
+              />
+              <span class="text-[11px] text-slate-500">{{ sp.unit || 'ชิ้น' }}</span>
+              <button @click="removeSparePart(index)" class="ml-auto text-red-400 hover:text-red-600">
+                <Icon name="lucide:trash-2" class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <button
+            @click="addSparePart"
+            class="w-full py-2 border border-dashed border-slate-300 rounded-[8px] text-[12px] text-slate-500 hover:border-[#00a6ff] hover:text-[#00a6ff]"
+          >
+            + เพิ่มอะไหล่อีก
+          </button>
+        </div>
+      </UiCard>
+
       <UiButton
         variant="primary"
         size="large"
@@ -86,6 +159,72 @@ const { saveDraft, getDraft, removeDraft, addToQueue } = useOfflineStorage()
 const { user } = useAuth()
 
 const submitting = ref(false)
+
+// Spare parts catalog and selection
+const allPartsCatalog = ref<any[]>([])
+
+interface SparePartEntry {
+  part_id: number | null
+  part_name: string
+  quantity: number
+  unit: string
+  searchText: string
+  showDropdown: boolean
+  filteredParts: any[]
+}
+
+const spareParts = ref<SparePartEntry[]>([])
+
+const loadPartsCatalog = async () => {
+  try {
+    const api = useApi()
+    const response = await api.get<any>('/parts')
+    if (response.success && response.data) {
+      allPartsCatalog.value = response.data
+    }
+  } catch (error) {
+    console.error('Failed to load parts catalog:', error)
+  }
+}
+
+const addSparePart = () => {
+  spareParts.value.push({
+    part_id: null, part_name: '', quantity: 1, unit: 'ชิ้น',
+    searchText: '', showDropdown: false, filteredParts: []
+  })
+}
+
+const removeSparePart = (index: number) => { spareParts.value.splice(index, 1) }
+
+const filterSpareParts = (index: number) => {
+  const sp = spareParts.value[index]
+  const search = sp.searchText.toLowerCase().trim()
+  if (!search) {
+    sp.filteredParts = allPartsCatalog.value.slice(0, 15)
+  } else {
+    sp.filteredParts = allPartsCatalog.value.filter(p =>
+      p.part_name.toLowerCase().includes(search) ||
+      (p.part_code && p.part_code.toLowerCase().includes(search))
+    ).slice(0, 15)
+  }
+}
+
+const selectSparePart = (index: number, pm: any) => {
+  const sp = spareParts.value[index]
+  sp.part_id = pm.id
+  sp.part_name = pm.part_name
+  sp.unit = pm.unit || 'ชิ้น'
+  sp.searchText = pm.part_name
+  sp.showDropdown = false
+}
+
+const clearSparePart = (index: number) => {
+  const sp = spareParts.value[index]
+  sp.part_id = null
+  sp.part_name = ''
+  sp.unit = 'ชิ้น'
+  sp.searchText = ''
+}
 
 // Initialize form data from query params (from QR scan)
 const formData = ref({
@@ -119,6 +258,7 @@ const draftKey = 'create-notification'
 
 // Restore draft on mount (only if not from QR)
 onMounted(async () => {
+  await loadPartsCatalog()
   if (!route.query.asset_id) {
     const draft = await getDraft<typeof formData.value>(draftKey)
     if (draft) {
@@ -185,6 +325,8 @@ const handleSubmit = async () => {
     }
 
     // If online, send to API
+    const validSpareParts = spareParts.value.filter(sp => sp.part_id && sp.quantity > 0)
+    
     const response = await createNotification({
       asset_id: formData.value.asset_id,
       asset_code: formData.value.asset_code,
@@ -192,7 +334,11 @@ const handleSubmit = async () => {
       priority: formData.value.priority,
       problem_category: formData.value.problem_category || undefined,
       photos: formData.value.photos,
-      requester_id: user.value?.id || 1
+      requester_id: user.value?.id || 1,
+      spare_parts: validSpareParts.length > 0 ? validSpareParts.map(sp => ({
+        part_id: sp.part_id!,
+        quantity: sp.quantity
+      })) : undefined
     })
 
     await removeDraft(draftKey)

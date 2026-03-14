@@ -52,16 +52,6 @@
           </UiButton>
 
           <UiButton
-            variant="primary"
-            size="large"
-            full-width
-            @click="router.push(`/technician/parts/${jobId}`)"
-          >
-            <Icon name="lucide:package" class="w-5 h-5 mr-2" />
-            จัดการอะไหล่
-          </UiButton>
-
-          <UiButton
             variant="success"
             size="large"
             full-width

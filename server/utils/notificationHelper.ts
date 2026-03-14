@@ -77,6 +77,43 @@ export async function notifyCMStatusChange(
   const notifications: CreateNotificationParams[] = []
 
   switch (status) {
+    case 'pending_spare_approval':
+      // แจ้ง Approvers
+      const approvers = await query<{ id: number }>(
+        `SELECT u.id FROM users u
+         INNER JOIN role_permissions rp ON u.role = rp.role_name
+         WHERE rp.module = 'spare_parts' AND rp.can_approve = 1 AND u.is_active = 1`
+      )
+      for (const approver of approvers) {
+        notifications.push({
+          userId: approver.id,
+          type: 'cm_spare_approval',
+          title: 'คำขออนุมัติอะไหล่ CM',
+          message: `งาน ${cmData.notification_id} ขออนุมัติอะไหล่`,
+          referenceType: 'cm_history',
+          referenceId: cmHistoryId,
+          priority: 'high',
+          metadata: { notification_id: cmData.notification_id }
+        })
+      }
+      break
+
+    case 'spare_approved':
+      // แจ้ง Requester
+      if (cmData.requester_id) {
+        notifications.push({
+          userId: cmData.requester_id,
+          type: 'cm_spare_approved',
+          title: 'อะไหล่ได้รับการอนุมัติ',
+          message: `อะไหล่สำหรับงาน ${cmData.notification_id} ได้รับการอนุมัติแล้ว`,
+          referenceType: 'cm_history',
+          referenceId: cmHistoryId,
+          priority: 'high',
+          metadata: { notification_id: cmData.notification_id }
+        })
+      }
+      break
+
     case 'assigned':
       // แจ้ง Requester
       if (cmData.requester_id) {

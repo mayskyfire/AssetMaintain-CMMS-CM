@@ -44,6 +44,7 @@ const navItems = computed<NavItem[]>(() => {
     return [
       { path: '/supervisor/', icon: 'lucide:home', label: 'หน้าหลัก' },
       { path: '/supervisor/inbox', icon: 'lucide:menu', label: 'งานใหม่' },
+      { path: '/supervisor/spare-approvals', icon: 'lucide:clipboard-list', label: 'อนุมัติอะไหล่' },
       { path: '/supervisor/profile', icon: 'lucide:user', label: 'โปรไฟล์' }
     ]
   }

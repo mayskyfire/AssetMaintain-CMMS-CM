@@ -33,16 +33,28 @@
             ทั้งหมด ({{ totalCount }})
           </button>
           <button
-            ref="filterReported"
-            @click="() => { filterStatus = 'reported'; scrollToActiveFilter() }"
+            ref="filterReady"
+            @click="() => { filterStatus = 'ready'; scrollToActiveFilter() }"
             :class="[
               'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
-              filterStatus === 'reported'
-                ? 'bg-[#fef3c6] text-[#bb4d00] border border-[#fe9a00]'
+              filterStatus === 'ready'
+                ? 'bg-[#dbeafe] text-[#1447e6] border border-[#2b7fff]'
                 : 'bg-white text-slate-500 border border-slate-200'
             ]"
           >
-            รอมอบหมาย ({{ reportedCount }})
+            พร้อมมอบหมาย ({{ readyCount }})
+          </button>
+          <button
+            ref="filterPendingSpare"
+            @click="() => { filterStatus = 'pending_spare_approval'; scrollToActiveFilter() }"
+            :class="[
+              'px-4 py-2 rounded-full text-[14px] whitespace-nowrap transition-colors',
+              filterStatus === 'pending_spare_approval'
+                ? 'bg-orange-100 text-orange-700 border border-orange-300'
+                : 'bg-white text-slate-500 border border-slate-200'
+            ]"
+          >
+            รออนุมัติอะไหล่ ({{ pendingSpareCount }})
           </button>
           <button
             ref="filterAssigned"
@@ -143,10 +155,11 @@ const { getInbox } = useSupervisorService()
 const { inbox, loading } = useSupervisorState()
 
 const searchQuery = ref('')
-const filterStatus = ref<'all' | 'reported' | 'assigned' | 'in_progress' | 'completed'>('all')
+const filterStatus = ref<'all' | 'ready' | 'pending_spare_approval' | 'assigned' | 'in_progress' | 'completed'>('all')
 const filterContainer = ref<HTMLElement | null>(null)
 const filterAll = ref<HTMLElement | null>(null)
-const filterReported = ref<HTMLElement | null>(null)
+const filterReady = ref<HTMLElement | null>(null)
+const filterPendingSpare = ref<HTMLElement | null>(null)
 const filterAssigned = ref<HTMLElement | null>(null)
 const filterInProgress = ref<HTMLElement | null>(null)
 const filterCompleted = ref<HTMLElement | null>(null)
@@ -154,47 +167,36 @@ const filterCompleted = ref<HTMLElement | null>(null)
 // Scroll to active filter button
 const scrollToActiveFilter = () => {
   nextTick(() => {
-    let targetButton: HTMLElement | null = null
-    
-    if (filterStatus.value === 'reported') {
-      targetButton = filterReported.value
-    } else if (filterStatus.value === 'assigned') {
-      targetButton = filterAssigned.value
-    } else if (filterStatus.value === 'in_progress') {
-      targetButton = filterInProgress.value
-    } else if (filterStatus.value === 'completed') {
-      targetButton = filterCompleted.value
-    } else {
-      targetButton = filterAll.value
+    const filterRefs: Record<string, HTMLElement | null> = {
+      all: filterAll.value,
+      ready: filterReady.value,
+      pending_spare_approval: filterPendingSpare.value,
+      assigned: filterAssigned.value,
+      in_progress: filterInProgress.value,
+      completed: filterCompleted.value
     }
-    
+
+    const targetButton = filterRefs[filterStatus.value] || filterAll.value
+
     if (targetButton && filterContainer.value) {
       const container = filterContainer.value
-      const button = targetButton
-      
-      // Calculate scroll position to center the button
-      const scrollLeft = button.offsetLeft - (container.offsetWidth / 2) + (button.offsetWidth / 2)
-      
-      container.scrollTo({
-        left: scrollLeft,
-        behavior: 'smooth'
-      })
+      const scrollLeft = targetButton.offsetLeft - (container.offsetWidth / 2) + (targetButton.offsetWidth / 2)
+      container.scrollTo({ left: scrollLeft, behavior: 'smooth' })
     }
   })
 }
 
 // Load inbox on mount
 onMounted(async () => {
-  // Check for status query parameter
   const statusParam = route.query.status as string
-  if (statusParam && ['reported', 'assigned', 'in_progress', 'completed'].includes(statusParam)) {
-    filterStatus.value = statusParam as 'reported' | 'assigned' | 'in_progress' | 'completed'
+  if (statusParam === 'ready') {
+    filterStatus.value = 'ready'
+  } else if (['pending_spare_approval', 'assigned', 'in_progress', 'completed'].includes(statusParam)) {
+    filterStatus.value = statusParam as any
   }
-  
+
   try {
     await getInbox()
-    
-    // Scroll to active filter after data is loaded
     scrollToActiveFilter()
   } catch (error) {
     console.error('Failed to load inbox:', error)
@@ -204,19 +206,23 @@ onMounted(async () => {
 // Computed counts
 const totalCount = computed(() => inbox.value.length)
 
-const reportedCount = computed(() => 
-  inbox.value.filter(job => job.status === 'reported').length
+const readyCount = computed(() =>
+  inbox.value.filter(job => job.status === 'reported' || job.status === 'spare_approved').length
 )
 
-const assignedCount = computed(() => 
+const pendingSpareCount = computed(() =>
+  inbox.value.filter(job => job.status === 'pending_spare_approval').length
+)
+
+const assignedCount = computed(() =>
   inbox.value.filter(job => job.status === 'assigned').length
 )
 
-const inProgressCount = computed(() => 
+const inProgressCount = computed(() =>
   inbox.value.filter(job => job.status === 'in_progress').length
 )
 
-const completedCount = computed(() => 
+const completedCount = computed(() =>
   inbox.value.filter(job => job.status === 'completed').length
 )
 
@@ -224,9 +230,10 @@ const completedCount = computed(() =>
 const filteredInbox = computed(() => {
   let filtered = inbox.value
 
-  // Apply status filter
-  if (filterStatus.value === 'reported') {
-    filtered = filtered.filter(job => job.status === 'reported')
+  if (filterStatus.value === 'ready') {
+    filtered = filtered.filter(job => job.status === 'reported' || job.status === 'spare_approved')
+  } else if (filterStatus.value === 'pending_spare_approval') {
+    filtered = filtered.filter(job => job.status === 'pending_spare_approval')
   } else if (filterStatus.value === 'assigned') {
     filtered = filtered.filter(job => job.status === 'assigned')
   } else if (filterStatus.value === 'in_progress') {
@@ -235,10 +242,9 @@ const filteredInbox = computed(() => {
     filtered = filtered.filter(job => job.status === 'completed')
   }
 
-  // Apply search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim()
-    filtered = filtered.filter(job => 
+    filtered = filtered.filter(job =>
       job.notification_id?.toLowerCase().includes(query) ||
       job.asset_name?.toLowerCase().includes(query) ||
       job.problem_description?.toLowerCase().includes(query) ||
@@ -251,8 +257,10 @@ const filteredInbox = computed(() => {
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
-    reported: 'รอมอบหมาย',
-    pending: 'รอมอบหมาย',
+    reported: 'พร้อมมอบหมาย',
+    pending: 'พร้อมมอบหมาย',
+    pending_spare_approval: 'รออนุมัติอะไหล่',
+    spare_approved: 'พร้อมมอบหมาย',
     assigned: 'มอบหมายแล้ว',
     in_progress: 'กำลังซ่อม',
     completed: 'เสร็จสิ้น'
@@ -262,8 +270,10 @@ const getStatusLabel = (status: string) => {
 
 const getStatusVariant = (status: string) => {
   const variants: Record<string, any> = {
-    reported: 'warning',
-    pending: 'warning',
+    reported: 'primary',
+    pending: 'primary',
+    pending_spare_approval: 'warning',
+    spare_approved: 'primary',
     assigned: 'secondary',
     in_progress: 'primary',
     completed: 'success'
@@ -279,7 +289,7 @@ const formatDate = (dateString: string) => {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  })
+  }) + ` น.`
 }
 
 const getPriorityLabel = (priority: string) => {

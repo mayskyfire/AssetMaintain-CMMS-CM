@@ -37,6 +37,19 @@
               ช่างผู้รับผิดชอบ: {{ currentJob.technician_name }}
             </span>
           </div>
+          <!-- แสดงช่างหลายคน (ถ้ามี) -->
+          <div v-if="assignedTechnicians.length > 1" class="flex items-start gap-2">
+            <Icon name="lucide:users" size="16" class="text-slate-500 shrink-0 mt-0.5" />
+            <div>
+              <span class="text-[13px] text-slate-500">ช่างทั้งหมด ({{ assignedTechnicians.length }} คน):</span>
+              <div class="mt-1 space-y-1">
+                <p v-for="tech in assignedTechnicians" :key="tech.technician_id" class="text-[12px] text-slate-500">
+                  • {{ tech.full_name }}
+                  <span v-if="tech.is_lead" class="text-[10px] text-[#00a6ff]">(หลัก)</span>
+                </p>
+              </div>
+            </div>
+          </div>
           <div v-if="currentJob.requester_name" class="flex items-start gap-2">
             <Icon name="lucide:user-check" size="16" class="text-slate-500 shrink-0 mt-0.5" />
             <span class="text-[13px] text-slate-500">
@@ -126,6 +139,40 @@
               <p class="text-[11px] text-white">{{ img.caption }}</p>
             </div>
           </div>
+        </div>
+      </UiCard>
+
+      <!-- Spare Parts Approval Card -->
+      <UiCard v-if="spareApproval" class-name="p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-[13px] font-bold text-slate-800">รายการอะไหล่ที่ขออนุมัติ</h3>
+          <UiBadge
+            :label="spareApproval.status === 'pending' ? 'รออนุมัติ' : spareApproval.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธ'"
+            :variant="spareApproval.status === 'pending' ? 'warning' : spareApproval.status === 'approved' ? 'success' : 'danger'"
+            :show-dot="true"
+            size="small"
+          />
+        </div>
+        <div class="bg-slate-50 rounded-[8px] p-3">
+          <div class="space-y-2">
+            <div
+              v-for="item in spareApproval.items"
+              :key="item.id"
+              class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
+            >
+              <div>
+                <p class="text-[12px] font-bold text-slate-800">{{ item.part_name }}</p>
+                <p class="text-[11px] text-slate-500">{{ item.part_code || '-' }} | คงเหลือ: {{ item.stock_quantity }} {{ item.unit || 'ชิ้น' }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-[13px] font-bold text-slate-800">{{ item.quantity }} {{ item.unit || 'ชิ้น' }}</p>
+                <p v-if="item.unit_cost" class="text-[11px] text-slate-500">฿{{ (item.unit_cost * item.quantity).toLocaleString() }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="spareApproval.status === 'rejected' && spareApproval.approval_notes" class="mt-3 px-3 py-2 bg-red-50 rounded-[8px]">
+          <p class="text-[12px] text-red-600">เหตุผล: {{ spareApproval.approval_notes }}</p>
         </div>
       </UiCard>
 
@@ -262,15 +309,37 @@ const { currentJob, loading } = useTechnicianState()
 const { getImageUrl } = useImageUrl()
 
 const jobId = computed(() => Number(route.params.id))
+const assignedTechnicians = ref<any[]>([])
+const spareApproval = ref<any>(null)
 
 // Load job detail on mount
 onMounted(async () => {
   try {
     await getJobDetail(jobId.value)
+    await loadSpareApproval()
   } catch (error) {
     console.error('Failed to load job detail:', error)
   }
 })
+
+// โหลดข้อมูลช่างหลายคนจาก assigned_technicians
+watch(() => currentJob.value, (val) => {
+  if (val && (val as any).assigned_technicians) {
+    assignedTechnicians.value = (val as any).assigned_technicians
+  }
+}, { immediate: true })
+
+const loadSpareApproval = async () => {
+  try {
+    const api = useApi()
+    const response = await api.get<any>('/cm/spare-approvals', { status: 'all' })
+    if (response.success && response.data) {
+      spareApproval.value = response.data.find((a: any) => a.cm_history_id === jobId.value) || null
+    }
+  } catch (error) {
+    // ไม่มี spare approval ก็ไม่เป็นไร
+  }
+}
 
 // Transform timeline from API data
 const timelineItems = computed(() => {
@@ -290,6 +359,8 @@ const timelineItems = computed(() => {
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
     reported: 'รอดำเนินการ',
+    pending_spare_approval: 'รออนุมัติอะไหล่',
+    spare_approved: 'อะไหล่อนุมัติแล้ว',
     assigned: 'รอรับงาน',
     in_progress: 'กำลังดำเนินการ',
     completed: 'เสร็จสิ้น'
@@ -300,6 +371,8 @@ const getStatusLabel = (status: string) => {
 const getStatusVariant = (status: string) => {
   const variants: Record<string, any> = {
     reported: 'warning',
+    pending_spare_approval: 'warning',
+    spare_approved: 'primary',
     assigned: 'warning',
     in_progress: 'primary',
     completed: 'success'
@@ -316,6 +389,6 @@ const formatDate = (dateString: string | null) => {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  })
+  }) + ` น.`
 }
 </script>

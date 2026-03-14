@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
     const offset = (page - 1) * limit
 
     // Query notifications
-    // - reported: แสดงทั้งหมด (ยังไม่ได้มอบหมาย)
+    // - reported, pending_spare_approval, spare_approved: แสดงทั้งหมด (ยังไม่ได้มอบหมาย หรือรออนุมัติอะไหล่)
     // - assigned, in_progress, completed: แสดงเฉพาะที่ supervisor คนนี้เป็นคนมอบหมาย
     const notifications = await query<{
       id: number
@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
        INNER JOIN users u1 ON cm.requester_id = u1.id
        LEFT JOIN users u2 ON cm.technician_id = u2.id
        WHERE (
-         cm.status = 'reported' 
+         cm.status IN ('reported', 'pending_spare_approval', 'spare_approved')
          OR (cm.status IN ('assigned', 'in_progress', 'completed') AND cm.supervisor_id = ?)
        )
        ORDER BY 
@@ -95,7 +95,7 @@ export default defineEventHandler(async (event) => {
       `SELECT COUNT(*) as total 
        FROM cm_history 
        WHERE (
-         status = 'reported' 
+         status IN ('reported', 'pending_spare_approval', 'spare_approved')
          OR (status IN ('assigned', 'in_progress', 'completed') AND supervisor_id = ?)
        )`,
       [userId]

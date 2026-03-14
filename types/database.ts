@@ -6,7 +6,7 @@
 export type UserRole = 'admin' | 'planner' | 'technician' | 'vendor' | 'requester' | 'engineer'
 export type AssetStatus = 'active' | 'inactive' | 'maintenance' | 'retired'
 export type Priority = 'low' | 'medium' | 'high' | 'critical'
-export type CMStatus = 'reported' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
+export type CMStatus = 'reported' | 'pending_spare_approval' | 'spare_approved' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
 export type PMStatus = 'completed' | 'incomplete' | 'cancelled'
 export type PlanStatus = 'active' | 'paused' | 'completed' | 'cancelled'
 export type FrequencyType = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'usage'

@@ -9,6 +9,37 @@
         <h2 class="text-[14px] font-bold text-slate-800 mt-1">{{ assetName }}</h2>
       </UiCard>
 
+      <!-- Spare Parts Approval Card -->
+      <UiCard v-if="spareApproval" class-name="p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-[13px] font-bold text-slate-800">รายการอะไหล่ที่ขออนุมัติ</h3>
+          <UiBadge
+            :label="spareApproval.status === 'pending' ? 'รออนุมัติ' : spareApproval.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธ'"
+            :variant="spareApproval.status === 'pending' ? 'warning' : spareApproval.status === 'approved' ? 'success' : 'danger'"
+            :show-dot="true"
+            size="small"
+          />
+        </div>
+        <div class="bg-slate-50 rounded-[8px] p-3">
+          <div class="space-y-2">
+            <div
+              v-for="item in spareApproval.items"
+              :key="item.id"
+              class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
+            >
+              <div>
+                <p class="text-[12px] font-bold text-slate-800">{{ item.part_name }}</p>
+                <p class="text-[11px] text-slate-500">{{ item.part_code || '-' }} | คงเหลือ: {{ item.stock_quantity }} {{ item.unit || 'ชิ้น' }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-[13px] font-bold text-slate-800">{{ item.quantity }} {{ item.unit || 'ชิ้น' }}</p>
+                <p v-if="item.unit_cost" class="text-[11px] text-slate-500">฿{{ (item.unit_cost * item.quantity).toLocaleString() }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </UiCard>
+
       <!-- Warning if no worklog data -->
       <UiCard v-if="elapsedSeconds === 0" class-name="p-4 bg-amber-50 border-amber-200">
         <div class="flex items-start gap-3">
@@ -298,7 +329,21 @@ const formattedWorkTime = computed(() => {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 })
 
+const spareApproval = ref<any>(null)
+
 const { getJobDetail } = useTechnicianService()
+
+const loadSpareApproval = async () => {
+  try {
+    const api = useApi()
+    const response = await api.get<any>('/cm/spare-approvals', { status: 'all' })
+    if (response.success && response.data) {
+      spareApproval.value = response.data.find((a: any) => a.cm_history_id === Number(jobId.value)) || null
+    }
+  } catch (error) {
+    // ไม่มี spare approval ก็ไม่เป็นไร
+  }
+}
 
 // Load job details
 const loadJobDetails = async () => {
@@ -323,6 +368,7 @@ const loadJobDetails = async () => {
 // Load worklog data from localStorage
 onMounted(async () => {
   await loadJobDetails()
+  await loadSpareApproval()
   
   if (typeof window !== 'undefined') {
     try {

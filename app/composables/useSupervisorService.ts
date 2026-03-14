@@ -55,7 +55,7 @@ export const useSupervisorService = () => {
 
       if (response.success) {
         showSuccess('มอบหมายงานสำเร็จ')
-        state.removeFromInbox(data.cm_notification_id)
+        state.removeFromInbox(data.cm_history_id)
       }
 
       return response

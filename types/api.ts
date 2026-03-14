@@ -33,6 +33,11 @@ export interface CreateNotificationRequest {
   priority: Priority
   problem_category?: string
   photos?: string[] // base64 or URLs
+  requester_id?: number
+  spare_parts?: Array<{
+    part_id: number
+    quantity: number
+  }>
 }
 
 export interface CreateNotificationResponse {
@@ -174,7 +179,7 @@ export interface SupervisorInboxItem {
 
 export interface AssignTechnicianRequest {
   cm_history_id: number
-  technician_id: number
+  technician_ids: number[]
   supervisor_id: number
 }
 

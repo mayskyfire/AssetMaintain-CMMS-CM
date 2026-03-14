@@ -135,12 +135,38 @@ export default defineEventHandler(async (event) => {
       [id]
     )
 
+    // Query assigned technicians from cm_technician_assignments
+    const assignedTechnicians = await query<{
+      id: number
+      technician_id: number
+      full_name: string
+      is_lead: number
+      status: string
+      assigned_at: Date | null
+      accepted_at: Date | null
+    }>(
+      `SELECT 
+        cta.id,
+        cta.technician_id,
+        u.full_name,
+        cta.is_lead,
+        cta.status,
+        cta.assigned_at,
+        cta.accepted_at
+       FROM cm_technician_assignments cta
+       INNER JOIN users u ON cta.technician_id = u.id
+       WHERE cta.cm_history_id = ?
+       ORDER BY cta.is_lead DESC, cta.assigned_at ASC`,
+      [id]
+    )
+
     return {
       success: true,
       data: {
         ...notification,
         evidence_images: evidenceImages,
         parts_used: partsUsed,
+        assigned_technicians: assignedTechnicians,
         timeline: timeline.map(t => ({
           ...t,
           time: toThaiISOString(t.time)

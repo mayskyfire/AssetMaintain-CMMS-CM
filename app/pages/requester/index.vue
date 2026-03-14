@@ -209,6 +209,8 @@ const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
     reported: 'รอดำเนินการ',
     pending: 'รอดำเนินการ',
+    pending_spare_approval: 'รออนุมัติอะไหล่',
+    spare_approved: 'อะไหล่อนุมัติแล้ว',
     assigned: 'กำลังซ่อม',
     in_progress: 'กำลังซ่อม',
     completed: 'เสร็จสิ้น',
@@ -221,6 +223,8 @@ const getStatusVariant = (status: string) => {
   const variants: Record<string, any> = {
     reported: 'warning',
     pending: 'warning',
+    pending_spare_approval: 'warning',
+    spare_approved: 'primary',
     assigned: 'primary',
     in_progress: 'primary',
     completed: 'success',
@@ -237,7 +241,7 @@ const formatDate = (dateString: string) => {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  })
+  }) + ` น.`
 }
 
 const getPriorityLabel = (priority: string) => {

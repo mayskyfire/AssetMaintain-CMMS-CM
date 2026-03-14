@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
       corrective_action: string | null
       preventive_recommendation: string | null
       priority: 'low' | 'medium' | 'high' | 'critical'
-      status: 'reported' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
+      status: 'reported' | 'pending_spare_approval' | 'spare_approved' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
       requester_id: number
       requester_name: string
       technician_id: number | null
@@ -145,12 +145,38 @@ export default defineEventHandler(async (event) => {
       [id]
     )
 
+    // Query assigned technicians
+    const assignedTechnicians = await query<{
+      id: number
+      technician_id: number
+      full_name: string
+      is_lead: number
+      status: string
+      assigned_at: Date | null
+      accepted_at: Date | null
+    }>(
+      `SELECT 
+        cta.id,
+        cta.technician_id,
+        u.full_name,
+        cta.is_lead,
+        cta.status,
+        cta.assigned_at,
+        cta.accepted_at
+       FROM cm_technician_assignments cta
+       INNER JOIN users u ON cta.technician_id = u.id
+       WHERE cta.cm_history_id = ?
+       ORDER BY cta.is_lead DESC, cta.assigned_at ASC`,
+      [id]
+    )
+
     return {
       success: true,
       data: {
         ...job,
         evidence_images: evidenceImages,
         parts_used: partsUsed,
+        assigned_technicians: assignedTechnicians,
         timeline: timeline.map(t => ({
           ...t,
           time: toThaiISOString(t.time)

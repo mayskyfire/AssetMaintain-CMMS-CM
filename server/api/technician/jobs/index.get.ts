@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
     const limit = parseInt(queryParams.limit as string) || 20
     const offset = (page - 1) * limit
 
-    // Query jobs assigned to technician
+    // Query jobs assigned to technician (รองรับทั้ง cm_history.technician_id เดิม และ cm_technician_assignments ใหม่)
     const jobs = await query<{
       id: number
       notification_id: string
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
       assigned_at: Date | null
       accepted_at: Date | null
     }>(
-      `SELECT 
+      `SELECT DISTINCT
         cm.id,
         cm.notification_id,
         cm.asset_id,
@@ -69,7 +69,8 @@ export default defineEventHandler(async (event) => {
         cm.accepted_at
        FROM cm_history cm
        INNER JOIN assets a ON cm.asset_id = a.id
-       WHERE cm.technician_id = ?
+       LEFT JOIN cm_technician_assignments cta ON cta.cm_history_id = cm.id AND cta.technician_id = ?
+       WHERE cm.technician_id = ? OR cta.technician_id = ?
        ORDER BY 
          CASE cm.status
            WHEN 'assigned' THEN 1
@@ -84,15 +85,16 @@ export default defineEventHandler(async (event) => {
          END,
          cm.reported_date DESC
        LIMIT ? OFFSET ?`,
-      [technicianId, limit, offset]
+      [technicianId, technicianId, technicianId, limit, offset]
     )
 
     // Get total count
     const [countResult] = await query<{ total: number }>(
-      `SELECT COUNT(*) as total 
-       FROM cm_history 
-       WHERE technician_id = ?`,
-      [technicianId]
+      `SELECT COUNT(DISTINCT cm.id) as total 
+       FROM cm_history cm
+       LEFT JOIN cm_technician_assignments cta ON cta.cm_history_id = cm.id AND cta.technician_id = ?
+       WHERE cm.technician_id = ? OR cta.technician_id = ?`,
+      [technicianId, technicianId, technicianId]
     )
 
     const total = countResult?.total || 0
