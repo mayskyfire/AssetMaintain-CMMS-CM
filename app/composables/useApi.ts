@@ -149,6 +149,24 @@ export function useApi() {
           } as ApiError
         }
 
+        // License expired — เปิด modal กรอก license key
+        if (response.status === 403 && data?.data?.code === 'LICENSE_EXPIRED') {
+          if (import.meta.client) {
+            try {
+              const { openActivateModal } = useLicense()
+              openActivateModal()
+            } catch (e) {
+              // composable อาจยังไม่พร้อม
+            }
+          }
+          throw {
+            success: false,
+            error: 'License Expired',
+            message: data.message || 'หมดอายุทดลองใช้งาน กรุณากรอก License Key',
+            statusCode: 403
+          } as ApiError
+        }
+
         throw {
           success: false,
           error: data.error || 'Request failed',

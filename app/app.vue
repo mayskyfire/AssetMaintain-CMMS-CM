@@ -8,11 +8,15 @@
     />
     
     <UiOfflineBanner />
+    <ClientOnly>
+      <UiLicenseBanner />
+    </ClientOnly>
     <NuxtRouteAnnouncer />
     <NuxtPage :transition="{ name: 'page', mode: 'out-in' }" />
     <UiToastContainer />
     <ClientOnly>
       <UiPwaInstallBanner />
+      <UiLicenseActivateModal />
     </ClientOnly>
   </div>
 </template>
